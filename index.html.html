@@ -1004,7 +1004,7 @@
         let memo = `PP${currentMemberCode}USD${usd}`;
         
         document.getElementById('usd-converted-hint').innerText = `~${vndVal.toLocaleString('vi-VN')}đ (~${calculatedPts} Point)`;
-        let qrUrl = `https://img.vietqr.io/image/TCB-19020990356868-compact2.png?amount=${vndVal}&addInfo=${memo}&accountName=${encodeURIComponent(ACCOUNT_NAME)}`;
+        let qrUrl = `https://img.vietqr.io/image/${BANK_ID}-${ACCOUNT_NO}-compact2.png?amount=${vndVal}&addInfo=${memo}&accountName=${encodeURIComponent(ACCOUNT_NAME)}`;
         document.getElementById('topup-vietqr-img').src = qrUrl;
         document.getElementById('topup-account-info-text').innerHTML = `
             <div class="space-y-1.5 text-left bg-amber-50/70 p-2.5 rounded-xl border border-amber-200">

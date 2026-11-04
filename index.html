@@ -916,6 +916,9 @@
         document.body.insertAdjacentHTML('beforeend', modalHtml);
         switchTopupCurrency('VND');
 
+        // KÍCH HOẠT LẮNG NGHE TỰ ĐỘNG WEBHOOK KHI MỞ BẢNG NẠP
+        watchUserPointsForPayment(currentMemberCode, userPoints);
+
         if (topupAutoCloseTimer) clearTimeout(topupAutoCloseTimer);
         topupAutoCloseTimer = setTimeout(() => { closePointTopupModal(); }, 60000);
     }
@@ -2198,6 +2201,9 @@ function loadRealtimeMessages() {
         document.getElementById('vietqr-img').src = qrApiUrl;
         switchCheckoutCurrency('VND');
         showSection('checkout-section');
+
+        // KÍCH HOẠT LẮNG NGHE TỰ ĐỘNG WEBHOOK KHI MỞ BẢNG THANH TOÁN GÓI
+        watchUserPointsForPayment(currentMemberCode, userPoints);
     }
 
     function switchCheckoutCurrency(curr) {

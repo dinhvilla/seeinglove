@@ -12,7 +12,8 @@
     <!-- FIREBASE SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-    
+    <!-- THÊM DÒNG NÀY ĐỂ KÍCH HOẠT AUTH -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <!-- THƯ VIỆN MÃ HÓA ĐẦU CUỐI (CRYPTO JS) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
 
@@ -739,15 +740,15 @@
 
     // Hằng số phí thành viên (dễ dàng thay đổi sau này chỉ tại đây)
     // Hằng số phí thành viên & giá gói (dễ dàng thay đổi sau này chỉ tại đây)
-    const FEE_PHOTHONG = 3;
-    const FEE_TINHHOA = 100;
+    const FEE_PHOTHONG = 2;
+    const FEE_TINHHOA = 50;
     const PRICE_ELITE_PACK = 1500000;
     const PRICE_HIDE_PACK = 10000000;
 
     const siteContents = {
-        mission: { title: "Giới thiệu Seeing Love & Sứ mệnh", body: "Seeing Love mang đến sứ mệnh kết nối tình yêu chân thành, nghiêm túc và đẳng cấp. Ứng dụng cung cấp phương thức nhắn tin liên lạc riêng tư không phụ thuộc số điện thoại hay email." },
-        privacy: { title: "Chính sách bảo mật thông tin", body: "Chúng tôi coi trọng sự riêng tư tuyệt đối. Mọi thông tin cá nhân và hình ảnh đều được mã hóa an toàn trên đám mây." },
-        guide: { title: "Hướng dẫn sử dụng", body: "Hệ thống vận hành hoàn toàn tự động & không sử dụng số điện thoại, email của bạn. Nếu bạn không thay đổi thiết bị hoặc thiết bị không bị format lại, việc đăng nhập là hoàn toàn tự động không cần nhớ mật khẩu ngay cả khi bạn thay đổi mật khẩu tuỳ ý. Trước khi thay đổi thiết bị hoặc đề phòng nguy cơ thiết bị hiện tại hỏng hay thất lạc, hãy ghi nhớ mã thành viên của bạn và mật khẩu.  Khi thay đổi thiết bị hoặc quên mật khẩu, hãy sử dụng cơ chế Xác thực Nhận thức Ngữ cảnh 20 câu hỏi để khôi phục tài khoản. Trong trường hợp thất bại, hãy tạo lại tài khoản mới hoàn toàn miễn phí. Hệ thống không sử dụng cơ chế cấp lại mật khẩu qua bất kỳ hình thức xác thực cá nhân nào." }
+        mission: { title: "Giới thiệu Seeing Love & Sứ mệnh", body: "Seeing Love mang đến sứ mệnh kết nối tình yêu chân thành, nghiêm túc và đẳng cấp. Seeing Love cũng là một phương thức nhắn tin liên lạc riêng tư, được mã hoá đầu cuối và không phụ thuộc số điện thoại hay email." },
+        privacy: { title: "Chính sách bảo mật thông tin", body: "Chúng tôi coi trọng sự riêng tư tuyệt đối. Mọi thông tin cá nhân, hình ảnh và cuộc trò chuyện đều được mã hóa đầu cuối an toàn trên đám mây." },
+        guide: { title: "Hướng dẫn sử dụng", body: "Hệ thống vận hành hoàn toàn tự động không sử dụng số điện thoại và email. Trước khi thay đổi thiết bị hoặc nguy cơ thiết bị hiện tại có thể hỏng hay thất lạc, hãy ghi nhớ mã thành viên & mật khẩu. Khi đăng nhập thất bại hãy sử dụng cơ chế xác thực nhận thức ngữ cảnh 20 câu hỏi để khôi phục tài khoản. Trong trường hợp thất bại, hãy tạo lại tài khoản mới hoàn toàn miễn phí. Hệ thống không sử dụng cơ chế cấp lại mật khẩu qua bất kỳ hình thức xác thực cá nhân nào." }
     };
 
     const BANK_ID = "MB"; 
@@ -906,10 +907,10 @@
                 </div>
                 <div id="topup-vnd-box" class="space-y-2 text-left text-xs">
                     <select id="topup-point-amount" onchange="updateTopupQR()" class="w-full p-3 rounded-xl border border-amber-300 bg-amber-50 font-bold text-amber-950">
-                        <option value="3">Nạp 3 Point (Phổ thông - 3.000đ)</option>
-                        <option value="50">Nạp 50 Point (50.000đ)</option>
-                        <option value="100">Nạp 100 Point (Tinh hoa 1 ngày - 100k)</option>
-                        <option value="1500">Nạp 1.500 Point (1.500.000đ)</option>
+                        <option value="3">Nạp 3 Points (Phổ thông/ngày - 3.000đ)</option>
+                        <option value="50">Nạp 50 Points (Tinh hoa/ngày - 50.000đ)</option>
+                        <option value="100">Nạp 100 Points (100.000đ)</option>
+                        <option value="1500">Nạp 1.500 Points (1.500.000đ)</option>
                     </select>
                 </div>
                 <div id="topup-usd-box" class="hidden space-y-2 text-left text-xs">
@@ -2037,46 +2038,49 @@ function loadRealtimeMessages() {
         const inputPass = document.getElementById('login-pass-input').value;
 
         try {
+            // 1. Yêu cầu Firebase Auth kiểm tra mật khẩu trước
+            const fakeEmail = inputCode + "@seeing.love";
+            await firebase.auth().signInWithEmailAndPassword(fakeEmail, inputPass);
+
+            // 2. Nếu Auth xác nhận đúng, mới kéo dữ liệu từ Firestore
             const docRef = db.collection("users").doc(inputCode);
             const doc = await docRef.get();
 
             if (doc.exists) {
-                const data = doc.data();
-                if (data.password && data.password === inputPass) {
-                    isUserLoggedIn = true;
-                    currentMemberCode = inputCode;
-                    localStorage.setItem('last_logged_code', currentMemberCode);
-                    localStorage.setItem('is_logged_in', 'true');
-                    if (currentMemberCode.startsWith("V")) isEliteMember = true;
+                isUserLoggedIn = true;
+                currentMemberCode = inputCode;
+                localStorage.setItem('last_logged_code', currentMemberCode);
+                localStorage.setItem('is_logged_in', 'true');
+                if (currentMemberCode.startsWith("V")) isEliteMember = true;
 
-                    updateMemberBadgeStyle(currentMemberCode);
-                    document.getElementById('user-badge-display').classList.remove('hidden');
-                    document.getElementById('user-badge-display').classList.add('flex');
-                    document.getElementById('logout-btn').classList.remove('hidden');
-                    document.getElementById('logout-btn').classList.add('flex');
-                    document.getElementById('bottom-nav').classList.remove('hidden');
-                    document.getElementById('point-floating-badge').classList.remove('hidden');
-                    
-                    await loadProfileDataFromCloud(currentMemberCode);
-                    applyMemberSearchPermission();
-                    updatePointFloatingBadgeUI();
+                updateMemberBadgeStyle(currentMemberCode);
+                document.getElementById('user-badge-display').classList.remove('hidden');
+                document.getElementById('user-badge-display').classList.add('flex');
+                document.getElementById('logout-btn').classList.remove('hidden');
+                document.getElementById('logout-btn').classList.add('flex');
+                document.getElementById('bottom-nav').classList.remove('hidden');
+                document.getElementById('point-floating-badge').classList.remove('hidden');
+                
+                await loadProfileDataFromCloud(currentMemberCode);
+                applyMemberSearchPermission();
+                updatePointFloatingBadgeUI();
 
-                    const authBtn = document.getElementById('auth-btn');
-                    authBtn.innerText = "Hồ sơ của tôi";
-                    authBtn.className = "px-3 py-1 text-xs font-bold bg-gradient-to-r from-amber-400 to-yellow-500 text-amber-950 hover:brightness-105 border border-amber-300 rounded-lg shadow-sm transition";
-                    authBtn.onclick = () => showSection('profile-section');
-                    
-                    showSection('search-section');
-                } else {
-                    alert('❌ Mật khẩu cá nhân không chính xác!');
-                }
+                const authBtn = document.getElementById('auth-btn');
+                authBtn.innerText = "Hồ sơ của tôi";
+                authBtn.className = "px-3 py-1 text-xs font-bold bg-gradient-to-r from-amber-400 to-yellow-500 text-amber-950 hover:brightness-105 border border-amber-300 rounded-lg shadow-sm transition";
+                authBtn.onclick = () => showSection('profile-section');
+                
+                showSection('search-section');
             } else {
-                alert('❌ Không tìm thấy mã thành viên này trên đám mây!');
+                alert('❌ Không tìm thấy hồ sơ của mã thành viên này!');
             }
         } catch(e) {
-            alert('❌ Lỗi kết nối đám mây.');
+            if (e.code === 'auth/wrong-password' || e.code === 'auth/user-not-found') {
+                alert('❌ Mã thành viên hoặc mật khẩu không chính xác!');
+            } else {
+                alert('❌ Lỗi xác thực: ' + e.message);
+            }
         }
-    }
 
     function handleCreateNewAccount() {
         currentMemberCode = generateUniqueMemberCode(false);
@@ -2125,7 +2129,7 @@ function loadRealtimeMessages() {
 
         const profileObj = {
             code: currentMemberCode,
-            password: newPass.trim(),
+            // ĐÃ XÓA TRƯỜNG PASSWORD Ở ĐÂY ĐỂ BẢO MẬT
             nickname: document.getElementById('profile-nickname').value,
             gender: document.getElementById('profile-gender').value,
             ageInput: rawAgeInput,
@@ -2148,7 +2152,13 @@ function loadRealtimeMessages() {
         };
 
         try {
+            // 1. Đưa mật khẩu vào Két sắt Firebase Auth bằng Email ảo
+            const fakeEmail = currentMemberCode + "@seeing.love";
+            await firebase.auth().createUserWithEmailAndPassword(fakeEmail, newPass.trim());
+
+            // 2. Lưu hồ sơ sạch (không chứa mật khẩu) lên Firestore
             await db.collection("users").doc(currentMemberCode).set(profileObj);
+            
             localStorage.setItem('last_logged_code', currentMemberCode);
             localStorage.setItem('is_logged_in', 'true');
             
@@ -2169,10 +2179,11 @@ function loadRealtimeMessages() {
             
             applyMemberSearchPermission();
             updatePointFloatingBadgeUI();
-            alert(`✅ Đã lưu hồ sơ lên Đám mây thành công!\nMã định danh: ${currentMemberCode}`);
+            alert(`✅ Đã lưu hồ sơ bảo mật thành công!\nMã định danh: ${currentMemberCode}`);
             showSection('search-section');
         } catch(e) {
-            alert("❌ Không thể lưu hồ sơ lên đám mây.");
+            console.error("Lỗi đăng ký:", e);
+            alert("❌ Không thể đăng ký: " + e.message);
         }
     }
 

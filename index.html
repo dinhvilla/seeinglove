@@ -132,7 +132,7 @@
 
 <nav id="bottom-nav" class="hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-rose-200 z-40 shadow-lg">
     <div class="max-w-full w-full px-2 mx-auto px-6 py-2.5 flex justify-around items-center text-xs font-bold text-gray-600">
-        <button onclick="showSection('search-section')" class="flex flex-col items-center gap-1 text-rose-600 hover:text-rose-700">
+        <button onclick="goHome()" class="flex flex-col items-center gap-1 text-rose-600 hover:text-rose-700">
             <i class="fa-solid fa-compass text-lg"></i> Khám phá
         </button>
         <button onclick="openChatList()" class="flex flex-col items-center gap-1 hover:text-rose-600 relative">
@@ -399,7 +399,7 @@
 
         </form>
     </section>
-<section id="search-section" class="hidden space-y-5">
+<section id="search-section" class="hidden space-y-5 pb-20">
         <div class="bg-white/95 p-4 rounded-3xl shadow-lg border-2 border-rose-200 space-y-2 text-sm">
             <div class="flex gap-2">
                 <input type="text" id="direct-connect-code" placeholder="NHẬP MÃ (VD: P123AB-123)..." oninput="this.value = this.value.toUpperCase()" class="flex-1 px-3.5 py-3 rounded-xl outline-none uppercase font-bold text-sm">
@@ -460,7 +460,6 @@
                     </select>
                 </div>
                 <div>
-                    <div>
                     <select onchange="handleLockedSelect(this)" class="w-full p-3 rounded-xl border border-rose-200 bg-white">
                         <option value="" disabled selected>Sự nghiệp ứng viên</option>
                         <option value="Tất cả/Bất kể">Tất cả/Bất kể</option>
@@ -1892,6 +1891,12 @@ function loadRealtimeMessages() {
 
     function goHome() {
         if (isUserLoggedIn) {
+            // [SỬA LỖI]: Bắt buộc reset lại vị trí bộ lọc về slide 1 khi mở tab Khám phá
+            currentFilterSlideP = 1;
+            currentFilterSlideV = 1;
+            changeFilterSlide('p', 0);
+            changeFilterSlide('v', 0);
+            
             showSection('search-section');
             applyMemberSearchPermission();
         } else {
@@ -1903,10 +1908,8 @@ function loadRealtimeMessages() {
         const pWrapper = document.getElementById('phothong-search-wrapper');
         const vWrapper = document.getElementById('tinhhoa-search-wrapper');
         
-        // Cập nhật trạng thái Tinh hoa dựa trên mã thành viên hoặc điểm số
-        if (currentMemberCode.startsWith("V") || userPoints >= 100) {
-            isEliteMember = true;
-        }
+        // [SỬA LỖI]: Kiểm tra lại trạng thái Tinh hoa một cách độc lập
+        isEliteMember = currentMemberCode.startsWith("V") || userPoints >= 100;
 
         if (isEliteMember) {
             pWrapper.classList.add('hidden');

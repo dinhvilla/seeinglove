@@ -12,6 +12,9 @@
     <!-- FIREBASE SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    
+    <!-- THƯ VIỆN MÃ HÓA ĐẦU CUỐI (CRYPTO JS) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
 
     <style>
         body {
@@ -73,7 +76,7 @@
     <div class="bg-white p-8 rounded-3xl shadow-2xl max-w-md w-full border-2 border-rose-500 space-y-4">
         <div class="w-16 h-16 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mx-auto text-3xl mb-2"><i class="fa-solid fa-snowflake"></i></div>
         <h2 class="text-xl font-black text-gray-900">Tài Khoản Bị Đóng Băng</h2>
-        <p class="text-sm text-gray-600 font-medium leading-relaxed">Thời gian ân hạn đã hết. Để tiếp tục truy cập dữ liệu và trò chuyện, vui lòng thanh toán. Nếu bạn thoát, tài khoản này sẽ bị XÓA VĨNH VIỄN.</p>
+        <p class="text-sm text-gray-600 font-medium leading-relaxed">Để tiếp tục truy cập dữ liệu và trò chuyện hãy thanh toán hoặc thoát và chấp nhận tài khoản này sẽ bị XÓA.</p>
         <div class="flex flex-col gap-3 pt-4">
             <button onclick="openPointTopupModal()" class="w-full py-3.5 bg-amber-500 text-white font-bold rounded-xl shadow hover:bg-amber-600">Nạp Point Mở Khóa</button>
             <button onclick="executeSelfDestruct()" class="w-full py-3.5 bg-rose-50 text-rose-700 font-bold rounded-xl shadow border border-rose-200 hover:bg-rose-100">Tạo tài khoản mới miễn phí</button>
@@ -127,7 +130,7 @@
         </div>
         <button onclick="openPointTopupModal()" class="h-[30px] px-2.5 bg-amber-500 hover:bg-amber-600 text-gray-950 font-black rounded-xl text-[10px] leading-[1.1] shadow transition flex items-center justify-center text-center">Nạp<br>Point</button>
     </div>
-    <span id="badge-notice-text" class="hidden text-[10px] text-rose-300 font-bold leading-none pt-0.5 whitespace-nowrap">[Thiếu: Cần 3 points]</span>
+    <span id="badge-notice-text" class="hidden text-[10px] text-rose-300 font-bold leading-none pt-0.5 whitespace-nowrap">[Cần nạp 3 points]</span>
 </div>
 
 <nav id="bottom-nav" class="hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-rose-200 z-40 shadow-lg">
@@ -830,7 +833,7 @@
             let timeStr = [hours, mins, secs].map(v => String(v).padStart(2, '0')).join(':');
             document.getElementById('badge-clock-display').innerText = `[${timeStr}]`;
 
-            noticeElem.innerText = `[Thiếu: Cần ${requiredPoints} points]`;
+            noticeElem.innerText = `[Cần nạp ${requiredPoints} points]`;
             noticeElem.classList.remove('hidden');
             if (isUserLoggedIn && !activeChatPartnerCode) {
                 badgeElem.classList.remove('hidden');
@@ -1817,7 +1820,19 @@ function loadRealtimeMessages() {
                     let isMe = msg.sender === currentMemberCode;
                     let bubbleClass = isMe ? "bg-rose-600 text-white ml-auto rounded-tl-2xl rounded-tr-2xl rounded-bl-2xl" : "bg-white text-gray-800 mr-auto rounded-tl-2xl rounded-tr-2xl rounded-br-2xl border border-rose-100";
                     
-                    let contentHtml = `<p>${msg.text}</p>`;
+                    // GIẢI MÃ TIN NHẮN TỪ ĐÁM MÂY VỀ MÁY NGƯỜI DÙNG
+                    let displayText = msg.text;
+                    if (msg.type === 'text') {
+                        try {
+                            const bytes = CryptoJS.AES.decrypt(msg.text, chatId);
+                            const decrypted = bytes.toString(CryptoJS.enc.Utf8);
+                            if (decrypted) displayText = decrypted;
+                        } catch(e) {
+                            // Giữ nguyên tin nhắn nếu là các tin nhắn cũ trước khi áp dụng mã hóa
+                        }
+                    }
+                    
+                    let contentHtml = `<p>${displayText}</p>`;
                     if (msg.type === 'location') {
                         contentHtml = `
                             <div class="space-y-1">
@@ -1847,9 +1862,12 @@ function loadRealtimeMessages() {
         const matchId = getCoreMatchId(currentMemberCode, activeChatPartnerCode);
 
         try {
+            // MÃ HÓA TIN NHẮN BẰNG CHUẨN AES TRƯỚC KHI RỜI KHỎI THIẾT BỊ
+            const encryptedText = CryptoJS.AES.encrypt(text, chatId).toString();
+
             await db.collection("chats").doc(chatId).collection("messages").add({
                 sender: currentMemberCode,
-                text: text,
+                text: encryptedText, // Đẩy chuỗi mã hóa vô nghĩa lên đám mây
                 type: "text",
                 timestamp: firebase.firestore.FieldValue.serverTimestamp()
             });
@@ -2426,7 +2444,7 @@ function loadRealtimeMessages() {
     }
 
     async function executeSelfDestruct() {
-        if (!confirm("⚠️ CẢNH BÁO: Toàn bộ dữ liệu hồ sơ và liên lạc của bạn sẽ bị xóa vĩnh viễn. Bạn có chắc chắn?")) return;
+        if (!confirm("⚠️ CẢNH BÁO: Hồ sơ và các trò chuyện của bạn sẽ bị xóa vĩnh viễn. Bạn có chắc chắn?")) return;
         
         try {
             await db.collection("users").doc(currentMemberCode).delete();

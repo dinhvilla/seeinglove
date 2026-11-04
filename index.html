@@ -740,10 +740,12 @@
 
     // Hằng số phí thành viên (dễ dàng thay đổi sau này chỉ tại đây)
     // Hằng số phí thành viên & giá gói (dễ dàng thay đổi sau này chỉ tại đây)
-    const FEE_PHOTHONG = 2;
-    const FEE_TINHHOA = 50;
+    const FEE_PHOTHONG = 3; 
+    const FEE_TINHHOA = 50; 
     const PRICE_ELITE_PACK = 1500000;
     const PRICE_HIDE_PACK = 10000000;
+    const TIME_FREEZE_PHOTHONG = 240; // 4 phút (tính bằng giây)
+    const TIME_FREEZE_TINHHOA = 180;  // 3 phút (tính bằng giây)
 
     const siteContents = {
         mission: { title: "Giới thiệu Seeing Love & Sứ mệnh", body: "Seeing Love mang đến sứ mệnh kết nối tình yêu chân thành, nghiêm túc và đẳng cấp. Seeing Love cũng là một phương thức nhắn tin liên lạc riêng tư, được mã hoá đầu cuối và không phụ thuộc số điện thoại hay email." },
@@ -774,8 +776,8 @@
     let pendingDirectPartner = null;
     let chatActivityTimer = null;
 
-    let userPoints = 2;
-    let clockSecondsLeft = 232;
+    let userPoints = FEE_PHOTHONG;
+    let clockSecondsLeft = TIME_FREEZE_PHOTHONG;
     let systemClockInterval = null;
     let freeMarketUsdRate = 25400; // Tỷ giá thị trường tự do
     let topupAutoCloseTimer = null;
@@ -882,7 +884,7 @@
                 }
             } else {
                 // Đủ điểm thì giữ nguyên mốc đếm ngược dự phòng và chỉ cập nhật giờ thực tế mỗi giây
-                clockSecondsLeft = currentMemberCode.startsWith("V") ? 180 : 240;
+                clockSecondsLeft = currentMemberCode.startsWith("V") ? TIME_FREEZE_TINHHOA : TIME_FREEZE_PHOTHONG;
                 updatePointFloatingBadgeUI();
             }
         }, 1000);
@@ -1058,10 +1060,10 @@
         }
 
         userPoints += addedPts;
-        clockSecondsLeft = isEliteMember ? 180 : 240;
+        clockSecondsLeft = isEliteMember ? TIME_FREEZE_TINHHOA : TIME_FREEZE_PHOTHONG;
         updatePointFloatingBadgeUI();
         closePointTopupModal();
-        if (userPoints >= (isEliteMember ? 100 : 3)) {
+        if (userPoints >= (isEliteMember ? FEE_TINHHOA : FEE_PHOTHONG)) {
             document.getElementById('hard-freeze-overlay').classList.add('hidden');
             startSystemClockTicker();
         }
@@ -1526,7 +1528,7 @@ if(!uDoc.exists) {
 
     // Bộ lọc chuẩn hóa: "Tất cả/Bất kể" của Phổ thông tuyệt đối loại trừ các giá trị Tinh hoa (khóa vàng)
     async function executeSearchCandidates(type) {
-        if (type === 'tinhhoa' && (!isEliteMember || userPoints < 100)) {
+        if (type === 'tinhhoa' && (!isEliteMember || userPoints < FEE_TINHHOA)) {
             openElitePaymentModal();
             return;
         }
@@ -1946,7 +1948,7 @@ function loadRealtimeMessages() {
         const vWrapper = document.getElementById('tinhhoa-search-wrapper');
         
         // [SỬA LỖI]: Kiểm tra lại trạng thái Tinh hoa một cách độc lập
-        isEliteMember = currentMemberCode.startsWith("V") || userPoints >= 100;
+        isEliteMember = currentMemberCode.startsWith("V") || userPoints >= FEE_TINHHOA;
 
         if (isEliteMember) {
             pWrapper.classList.add('hidden');
@@ -2086,8 +2088,8 @@ function loadRealtimeMessages() {
     function handleCreateNewAccount() {
         currentMemberCode = generateUniqueMemberCode(false);
         localStorage.setItem('last_logged_code', currentMemberCode);
-        userPoints = 3;
-        clockSecondsLeft = 240;
+        userPoints = FEE_PHOTHONG;
+        clockSecondsLeft = TIME_FREEZE_PHOTHONG;
         
         document.getElementById('profile-nickname').value = "";
         document.getElementById('profile-gender').value = "";
@@ -2125,7 +2127,7 @@ function loadRealtimeMessages() {
 
         if (shouldBeElite && !currentMemberCode.startsWith("V")) {
             currentMemberCode = "V" + currentMemberCode.substring(1);
-            clockSecondsLeft = 180; // 3 phút đếm ngược cho Tinh hoa
+            clockSecondsLeft = TIME_FREEZE_TINHHOA; // 3 phút đếm ngược cho Tinh hoa
         }
 
         const profileObj = {
@@ -2349,7 +2351,7 @@ function loadRealtimeMessages() {
         setTimeout(() => {
             isEliteMember = true;
             userPoints += addedPointsFromPackage;
-            clockSecondsLeft = 180;
+            clockSecondsLeft = TIME_FREEZE_TINHHOA;
             currentMemberCode = pendingEliteCode;
             localStorage.setItem('last_logged_code', currentMemberCode);
             updateMemberBadgeStyle(currentMemberCode);

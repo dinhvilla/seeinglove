@@ -906,10 +906,10 @@
                 <p id="topup-account-info-text" class="text-[11px] text-gray-600 font-medium"></p>
                 <div class="p-3 bg-amber-50 rounded-2xl border border-amber-300 text-center space-y-1">
                     <div class="flex items-center justify-center gap-2 text-amber-900 font-bold text-xs">
-                        <i class="fa-solid fa-spinner fa-spin text-amber-600 text-sm"></i>
-                        <span>Đang chờ thanh toán tự động từ MBBank...</span>
+                        <i class="fa-solid fa-shield-halved text-amber-600 text-sm"></i>
+                        <span>Quét mã QR qua ứng dụng MBBank để thanh toán</span>
                     </div>
-                    <p class="text-[10px] text-gray-500">Hệ thống sẽ tự động cộng Point ngay khi SePay ghi nhận giao dịch.</p>
+                    <p class="text-[10px] text-gray-500">Hệ thống ghi nhận giao dịch chính xác qua nội dung chuyển khoản.</p>
                 </div>
             </div>
         </div>`;
@@ -2617,9 +2617,15 @@ function loadRealtimeMessages() {
             </div>
         </div>
     </div>
-    <button onclick="handleUserConfirmPayment()" class="w-full py-3.5 bg-rose-600 text-white font-bold rounded-xl shadow hover:bg-rose-700 transition">
-        <i class="fa-solid fa-circle-check"></i> Tôi đã hoàn tất chuyển khoản
-    </button>
+    <div class="w-full p-4 bg-amber-50 rounded-2xl border-2 border-amber-300 text-center space-y-2 shadow-sm">
+        <div class="flex items-center justify-center gap-2 text-amber-900 font-extrabold text-xs">
+            <i class="fa-solid fa-triangle-exclamation text-amber-600 text-base"></i>
+            <span>Hệ thống đang chờ đối soát giao dịch tự động</span>
+        </div>
+        <p class="text-[11px] text-gray-600 leading-relaxed">
+            Vui lòng chuyển khoản. Gói dịch vụ sẽ được hệ thống tự động kích hoạt ngay sau khi chuyển khoản thành công.
+        </p>
+    </div>
 </section>
 
 <!-- FOOTER GÃY GỌN (ĐÃ GỎI BỎ EMAIL, LIÊN HỆ QUẢN TRỊ & ỦY QUYỀN) -->

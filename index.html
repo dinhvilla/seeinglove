@@ -1874,6 +1874,13 @@ function loadRealtimeMessages() {
     }
 
     async function sendTextMessage() {
+        // KIỂM TRA BẢO MẬT: Chặn gửi tin nhắn nếu đã đăng xuất
+        if (!isUserLoggedIn || !currentMemberCode) {
+            alert("⚠️ Phiên làm việc đã kết thúc do bạn đã đăng xuất. Vui lòng đăng nhập lại!");
+            resetToLogin();
+            return;
+        }
+
         const input = document.getElementById('chat-input-text');
         const text = input.value.trim();
         if (!text || !activeChatPartnerCode) return;
@@ -1883,12 +1890,11 @@ function loadRealtimeMessages() {
         const matchId = getCoreMatchId(currentMemberCode, activeChatPartnerCode);
 
         try {
-            // MÃ HÓA TIN NHẮN BẰNG CHUẨN AES TRƯỚC KHI RỜI KHỎI THIẾT BỊ
             const encryptedText = CryptoJS.AES.encrypt(text, chatId).toString();
 
             await db.collection("chats").doc(chatId).collection("messages").add({
                 sender: currentMemberCode,
-                text: encryptedText, // Đẩy chuỗi mã hóa vô nghĩa lên đám mây
+                text: encryptedText,
                 type: "text",
                 timestamp: firebase.firestore.FieldValue.serverTimestamp()
             });
@@ -1898,7 +1904,9 @@ function loadRealtimeMessages() {
                 updatedAt: new Date().toISOString()
             });
             input.value = "";
-        } catch(e) {}
+        } catch(e) {
+            alert("❌ Không thể gửi tin nhắn. Tài khoản đã bị hủy phiên kết nối.");
+        }
     }
 
     function handleChatKeypress(event) {
@@ -1959,12 +1967,20 @@ function loadRealtimeMessages() {
         }
     }
 
-    function resetToLogin() {
+    async function resetToLogin() {
+        try {
+            await firebase.auth().signOut();
+        } catch(e) {}
+
         isUserLoggedIn = false;
         isEliteMember = false;
-        localStorage.setItem('is_logged_in', 'false');
+        currentMemberCode = "";
+        activeChatPartnerCode = null;
         
-        document.getElementById('login-code-input').value = currentMemberCode;
+        localStorage.setItem('is_logged_in', 'false');
+        localStorage.removeItem('last_logged_code');
+        
+        document.getElementById('login-code-input').value = "";
         document.getElementById('user-badge-display').classList.add('hidden');
         document.getElementById('logout-btn').classList.add('hidden');
         document.getElementById('bottom-nav').classList.add('hidden');

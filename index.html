@@ -727,7 +727,7 @@
     </section>
 <script>
     const firebaseConfig = {
-        apiKey: "AIzaSyA4RKQu7e63dIW6Y806UQq-WJqbWaeNP9A",
+        apiKey: "AIzaSyA4RKQu7E63dIw6Y8O6UQq-WJqbWaeNP9A",
         authDomain: "seeing-love.firebaseapp.com",
         projectId: "seeing-love",
         storageBucket: "seeing-love.appspot.com",
@@ -2517,6 +2517,23 @@ function loadRealtimeMessages() {
             }
         });
     }
+// CHẶN CHUỘT PHẢI VÀ PHÍM TẮT XEM MÃ NGUỒN
+    document.addEventListener('contextmenu', event => event.preventDefault());
+
+    document.onkeydown = function(e) {
+        // Chặn F12
+        if (e.keyCode == 123) {
+            return false;
+        }
+        // Chặn Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+Shift+C (Mở Developer Tools)
+        if (e.ctrlKey && e.shiftKey && (e.keyCode == 'I'.charCodeAt(0) || e.keyCode == 'J'.charCodeAt(0) || e.keyCode == 'C'.charCodeAt(0))) {
+            return false;
+        }
+        // Chặn Ctrl+U (Xem Source code)
+        if (e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) {
+            return false;
+        }
+    };
 </script>
 
 <!-- MODALS THÊM: PARTNER PROFILE, PIN SETUP, INFO, ELITE CHECKOUT, CHECKOUT PANEL -->

@@ -999,7 +999,7 @@
     function updateTopupQR() {
         let pts = parseInt(document.getElementById('topup-point-amount').value);
         let amount = pts * 1000;
-        let memo = "TP" + currentMemberCode + "P" + pts;
+        let memo = currentMemberCode + "P" + pts;
         let qrUrl = `https://img.vietqr.io/image/${BANK_ID}-${ACCOUNT_NO}-compact2.png?amount=${amount}&addInfo=${memo}&accountName=${encodeURIComponent(ACCOUNT_NAME)}`;
         document.getElementById('topup-vietqr-img').src = qrUrl;
         document.getElementById('download-qr-link').href = qrUrl; // Gắn link để mở/lưu ảnh QR
@@ -1034,7 +1034,7 @@
         let usd = parseFloat(document.getElementById('topup-usd-input').value) || 1;
         let vndVal = Math.round(usd * freeMarketUsdRate);
         let calculatedPts = Math.round(vndVal / 1000);
-        let memo = `PP${currentMemberCode}USD${usd}`;
+        let memo = `${currentMemberCode}USD${usd}`;
         
         document.getElementById('usd-converted-hint').innerText = `~${vndVal.toLocaleString('vi-VN')}đ (~${calculatedPts} Point)`;
         let qrUrl = `https://img.vietqr.io/image/${BANK_ID}-${ACCOUNT_NO}-compact2.png?amount=${vndVal}&addInfo=${memo}&accountName=${encodeURIComponent(ACCOUNT_NAME)}`;
@@ -2438,7 +2438,7 @@ function loadRealtimeMessages() {
         
         let usdEquivalent = (currentCalculatedAmount / freeMarketUsdRate).toFixed(2);
         document.getElementById('checkout-usd-amount').innerText = `$${usdEquivalent} USD`;
-        document.getElementById('checkout-usd-memo').innerText = `PP${orderCode}USD${usdEquivalent}`;
+        document.getElementById('checkout-usd-memo').innerText = `${orderCode}USD${usdEquivalent}`;
 
         const qrApiUrl = `https://img.vietqr.io/image/${BANK_ID}-${ACCOUNT_NO}-compact2.png?amount=${currentCalculatedAmount}&addInfo=${orderCode}&accountName=${encodeURIComponent(ACCOUNT_NAME)}`;
         document.getElementById('vietqr-img').src = qrApiUrl;

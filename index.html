@@ -179,7 +179,7 @@
                 <i class="fa-solid fa-heart-pulse text-rose-600"></i> Giới thiệu Seeing Love & Sứ mệnh
             </h3>
             <p class="text-xs text-gray-700 leading-relaxed font-medium">
-                "Seeing Love được xây dựng để mang đến một không gian kết nối chân thành, nghiêm túc và đẳng cấp. Sứ mệnh của chúng tôi là giúp những người độc thân tìm kiếm một nửa hoàn hảo dựa trên sự tương thích về tư duy, vị thế sự nghiệp và phong cách sống. Seeing Love cũng là một phương thức nhắn tin liên lạc riêng tư không phụ thuộc vào số điện thoại hay email cá nhân".
+                "Seeing Love được xây dựng để mang đến một không gian kết nối chân thành, nghiêm túc và đẳng cấp giữa những người độc thân tìm kiếm một nửa hoàn hảo dựa trên sự tương thích về suy nghĩ, vị thế sự nghiệp và phong cách sống. Seeing Love cũng là một phương thức nhắn tin liên lạc riêng tư không phụ thuộc vào số điện thoại hay email cá nhân".
             </p>
         </div>
 
@@ -201,11 +201,11 @@
         <form onsubmit="handleCodeLogin(event)" class="space-y-4 text-sm">
             <div>
                 <label class="block font-bold text-gray-700 mb-1">Mã thành viên</label>
-                <input type="text" id="login-code-input" required oninput="this.value = this.value.toUpperCase()" class="w-full px-4 py-3 rounded-xl uppercase tracking-wider font-bold text-center text-lg outline-none" placeholder="VD: P333ML21-123">
+                <input type="text" id="login-code-input" name="username" autocomplete="username" required oninput="this.value = this.value.toUpperCase()" class="w-full px-4 py-3 rounded-xl uppercase tracking-wider font-bold text-center text-lg outline-none" placeholder="VD: P333ML21-123">
             </div>
             <div>
                 <label class="block font-bold text-gray-700 mb-1">Mật khẩu cá nhân</label>
-                <input type="password" id="login-pass-input" required class="w-full px-4 py-3 rounded-xl text-center text-lg outline-none" placeholder="Nhập mật khẩu...">
+                <input type="password" id="login-pass-input" name="password" autocomplete="current-password" required class="w-full px-4 py-3 rounded-xl text-center text-lg outline-none" placeholder="Nhập mật khẩu...">
             </div>
             <button type="submit" class="w-full py-3.5 bg-rose-600 text-white font-bold rounded-xl shadow-lg hover:bg-rose-700 transition text-base">
                 Truy cập tài khoản
@@ -237,7 +237,7 @@
             </div>
 
             <div id="challenge-step-1" class="space-y-3">
-                <label class="block font-bold text-gray-700">Nhập Mã định danh thành viên cần khôi phục:</label>
+                <label class="block font-bold text-gray-700">Nhập Mã thành viên cần khôi phục:</label>
                 <input type="text" id="recovery-target-code" oninput="this.value = this.value.toUpperCase()" placeholder="VD: P333ML21-123" class="w-full px-4 py-3 rounded-xl uppercase font-bold text-center text-base outline-none">
                 <button onclick="startChallengeQuiz()" class="w-full py-3 bg-rose-600 text-white font-bold rounded-xl shadow hover:bg-rose-700 transition">Bắt đầu bài kiểm tra nhận thức (20 câu)</button>
             </div>
@@ -736,6 +736,9 @@
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
+    // Ép Firebase Auth tự động Sign Out khi đóng tab/trình duyệt
+    firebase.auth().setPersistence(firebase.auth.Auth.Persistence.SESSION);
+    
     function getCoreMatchId(code1, code2) { return [code1.substring(1), code2.substring(1)].sort().join("_"); }
 
     // Hằng số phí thành viên (dễ dàng thay đổi sau này chỉ tại đây)
@@ -748,9 +751,9 @@
     const TIME_FREEZE_TINHHOA = 180;  // 3 phút (tính bằng giây)
 
     const siteContents = {
-        mission: { title: "Giới thiệu Seeing Love & Sứ mệnh", body: "Seeing Love mang đến sứ mệnh kết nối tình yêu chân thành, nghiêm túc và đẳng cấp. Seeing Love cũng là một phương thức nhắn tin liên lạc riêng tư, được mã hoá đầu cuối và không phụ thuộc số điện thoại hay email." },
-        privacy: { title: "Chính sách bảo mật thông tin", body: "Chúng tôi coi trọng sự riêng tư tuyệt đối. Mọi thông tin cá nhân, hình ảnh và cuộc trò chuyện đều được mã hóa đầu cuối an toàn trên đám mây." },
-        guide: { title: "Hướng dẫn sử dụng", body: "Hệ thống vận hành hoàn toàn tự động không sử dụng số điện thoại và email. Trước khi thay đổi thiết bị hoặc nguy cơ thiết bị hiện tại có thể hỏng hay thất lạc, hãy ghi nhớ mã thành viên & mật khẩu. Khi đăng nhập thất bại hãy sử dụng cơ chế xác thực nhận thức ngữ cảnh 20 câu hỏi để khôi phục tài khoản. Trong trường hợp thất bại, hãy tạo lại tài khoản mới hoàn toàn miễn phí. Hệ thống không sử dụng cơ chế cấp lại mật khẩu qua bất kỳ hình thức xác thực cá nhân nào." }
+        mission: { title: "Sử dụng an toàn & Miễn trừ", body: "Dịch vụ cung cấp cho người đủ 18 tuổi trở lên và người sử dụng dịch vụ nhắn tin vào mục đích riêng tư phải tuân thủ pháp luật nước sở tại." },
+        privacy: { title: "Chính sách bảo mật thông tin", body: "Chúng tôi coi trọng sự riêng tư tuyệt đối. Mọi thông tin về cuộc trò chuyện, mật khẩu cá nhân đều được mã hóa đầu cuối an toàn trên đám mây. Hệ thống không thu thập và lưu trữ số điện thoại, email hoặc tài khoản mạng xã hội khác của khách hàng." },
+        guide: { title: "Hướng dẫn sử dụng", body: "Hệ thống vận hành hoàn toàn tự động không sử dụng người quản trị. Cơ chế tạo tài khoản là miễn phí. Khi quên mật khẩu và đăng nhập thất bại hãy sử dụng xác thực ngữ cảnh 20 câu hỏi để khôi phục tài khoản. Trong trường hợp thất bại, hãy tạo lại tài khoản mới hoàn toàn miễn phí. Hệ thống không sử dụng cơ chế cấp lại mật khẩu qua bất kỳ hình thức xác thực cá nhân nào." }
     };
 
     const BANK_ID = "MB"; 
@@ -930,7 +933,7 @@
                 <div class="p-3 bg-amber-50 rounded-2xl border border-amber-300 text-center space-y-1">
                     <div class="flex items-center justify-center gap-2 text-amber-900 font-bold text-xs">
                         <i class="fa-solid fa-shield-halved text-amber-600 text-sm"></i>
-                        <span>Quét mã QR qua ứng dụng MBBank để thanh toán</span>
+                        <span>Thanh toán để nạp points</span>
                     </div>
                     <p class="text-[10px] text-gray-500">Hệ thống ghi nhận giao dịch chính xác qua nội dung chuyển khoản.</p>
                 </div>
@@ -1088,12 +1091,12 @@
 
     async function startChallengeQuiz() {
         const targetCode = document.getElementById('recovery-target-code').value.trim().toUpperCase();
-        if (!targetCode) { alert("Vui lòng nhập mã định danh cần khôi phục!"); return; }
+        if (!targetCode) { alert("Vui lòng nhập mã thành viên cần khôi phục!"); return; }
 
         try {
             const doc = await db.collection("users").doc(targetCode).get();
             if (!doc.exists) {
-                alert("❌ Không tìm thấy mã định danh này trên đám mây!");
+                alert("❌ Không tìm thấy mã thành viên này trên đám mây!");
                 return;
             }
             quizActiveData = doc.data();
@@ -1295,7 +1298,7 @@
         await loadProfileDataFromCloud(currentMemberCode);
         document.getElementById('login-pass-input').value = document.getElementById('register-pass').value;
 
-        let sessionLoggedIn = localStorage.getItem('is_logged_in') === 'true';
+        let sessionLoggedIn = sessionStorage.getItem('is_logged_in') === 'true';
         if (sessionLoggedIn) {
             isUserLoggedIn = true;
             if (currentMemberCode.startsWith("V")) {
@@ -1325,21 +1328,36 @@
         if (createBtn) createBtn.classList.toggle('hidden', isUserLoggedIn);
     }
 
-    function listenToDirectConnectRequests() {
-        db.collection("connect_requests").where("targetCode", "==", currentMemberCode).where("status", "==", "pending")
-            .onSnapshot(snapshot => {
-                snapshot.forEach(doc => {
-                    let data = doc.data();
-                    db.collection("blocks").doc(currentMemberCode + "_" + data.senderCode).get().then(bDoc => {
-                        if (!bDoc.exists) {
-                            pendingDirectPartner = data.senderCode;
-                            document.getElementById('connect-request-text').innerText = `Thành viên [${data.senderCode}] muốn kết nối trò chuyện với bạn.`;
-                            document.getElementById('connect-request-modal').classList.remove('hidden');
-                        }
-                    });
+    // ĐOẠN CODE MỚI ĐỂ THAY THẾ:
+// Đưa khai báo pendingRequestId lên chung với các biến toàn cục (như currentMemberCode) ở đầu script
+let unsubscribeConnectRequests = null;
+window.pendingRequestId = null; 
+
+function listenToDirectConnectRequests() {
+    if (unsubscribeConnectRequests) {
+        unsubscribeConnectRequests();
+        unsubscribeConnectRequests = null;
+    }
+
+    if (!currentMemberCode) return;
+
+    unsubscribeConnectRequests = db.collection("connect_requests")
+        .where("targetCode", "==", currentMemberCode)
+        .where("status", "==", "pending")
+        .onSnapshot(snapshot => {
+            snapshot.forEach(doc => {
+                let data = doc.data();
+                db.collection("blocks").doc(currentMemberCode + "_" + data.senderCode).get().then(bDoc => {
+                    if (!bDoc.exists) {
+                        pendingDirectPartner = data.senderCode;
+                        window.pendingRequestId = doc.id; // LƯU LẠI ID TOÀN CỤC
+                        document.getElementById('connect-request-text').innerText = `Thành viên [${data.senderCode}] muốn kết nối trò chuyện với bạn.`;
+                        document.getElementById('connect-request-modal').classList.remove('hidden');
+                    }
                 });
             });
-    }
+        });
+}
 
     async function requestDirectConnect() {
         const codeInput = document.getElementById('direct-connect-code').value.trim().toUpperCase();
@@ -1388,6 +1406,12 @@ if(!uDoc.exists) {
         document.getElementById('connect-request-modal').classList.add('hidden');
         if(!pendingDirectPartner) return;
 
+        // Xóa yêu cầu pending trên Firestore để nó không bao giờ hiện lại nữa
+        if (window.pendingRequestId) {
+            try { await db.collection("connect_requests").doc(window.pendingRequestId).delete(); } catch(e){}
+            window.pendingRequestId = null;
+        }
+
         const matchId = getCoreMatchId(currentMemberCode, pendingDirectPartner);
         await db.collection("matches").doc(matchId).set({
             members: [currentMemberCode, pendingDirectPartner],
@@ -1399,16 +1423,15 @@ if(!uDoc.exists) {
         openChatRoom(pendingDirectPartner, pData);
     }
 
-    async function blockDirectConnect() {
+    async function rejectDirectConnect() {
         document.getElementById('connect-request-modal').classList.add('hidden');
         if(!pendingDirectPartner) return;
-
-        await db.collection("blocks").doc(currentMemberCode + "_" + pendingDirectPartner).set({
-            blockedBy: currentMemberCode,
-            blockedUser: pendingDirectPartner,
-            timestamp: new Date().toISOString()
-        });
-        alert("🔒 Đã chặn thành viên thành công.");
+        
+        // Cập nhật trạng thái thành rejected (hoặc xóa)
+        if (window.pendingRequestId) {
+            try { await db.collection("connect_requests").doc(window.pendingRequestId).delete(); } catch(e){} // Đổi update thành delete cho sạch Database
+            window.pendingRequestId = null;
+        }
         pendingDirectPartner = null;
     }
 
@@ -1972,15 +1995,38 @@ function loadRealtimeMessages() {
             await firebase.auth().signOut();
         } catch(e) {}
 
+        // Tắt bộ lắng nghe kết nối để ngưng nhận popup
+        if (unsubscribeConnectRequests) {
+            unsubscribeConnectRequests();
+            unsubscribeConnectRequests = null;
+        }
+        
+        // Tắt bộ lắng nghe thanh toán (nếu đang chạy)
+        if (paymentListenerUnsubscribe) {
+            paymentListenerUnsubscribe();
+            paymentListenerUnsubscribe = null;
+        }
+
+        // Tắt popup nếu nó đang mở
+        document.getElementById('connect-request-modal').classList.add('hidden');
+        pendingDirectPartner = null;
+
+        // KHÔNG xóa currentMemberCode ở đây để giữ lại phục vụ cho ô nhập liệu
+        let savedLastCode = currentMemberCode || localStorage.getItem('last_logged_code');
+        
         isUserLoggedIn = false;
         isEliteMember = false;
-        currentMemberCode = "";
         activeChatPartnerCode = null;
         
-        localStorage.setItem('is_logged_in', 'false');
-        localStorage.removeItem('last_logged_code');
+        sessionStorage.setItem('is_logged_in', 'false');
+        // ĐÃ XÓA dòng lệnh localStorage.removeItem('last_logged_code'); ĐỂ GIỮ LẠI MÃ THÀNH VIÊN
         
-        document.getElementById('login-code-input').value = "";
+        // Cập nhật lại giao diện, giữ lại mã thành viên nhưng XÓA TRẮNG mật khẩu
+        if (savedLastCode) {
+            document.getElementById('login-code-input').value = savedLastCode;
+        }
+        document.getElementById('login-pass-input').value = ""; // Đảm bảo ô mật khẩu luôn trống khi Sign out
+        
         document.getElementById('user-badge-display').classList.add('hidden');
         document.getElementById('logout-btn').classList.add('hidden');
         document.getElementById('bottom-nav').classList.add('hidden');
@@ -2068,7 +2114,7 @@ function loadRealtimeMessages() {
                 isUserLoggedIn = true;
                 currentMemberCode = inputCode;
                 localStorage.setItem('last_logged_code', currentMemberCode);
-                localStorage.setItem('is_logged_in', 'true');
+                sessionStorage.setItem('is_logged_in', 'true');
                 if (currentMemberCode.startsWith("V")) isEliteMember = true;
 
                 updateMemberBadgeStyle(currentMemberCode);
@@ -2088,6 +2134,8 @@ function loadRealtimeMessages() {
                 authBtn.className = "px-3 py-1 text-xs font-bold bg-gradient-to-r from-amber-400 to-yellow-500 text-amber-950 hover:brightness-105 border border-amber-300 rounded-lg shadow-sm transition";
                 authBtn.onclick = () => showSection('profile-section');
                 
+                listenToDirectConnectRequests();
+
                 showSection('search-section');
             } else {
                 alert('❌ Không tìm thấy hồ sơ của mã thành viên này!');
@@ -2141,10 +2189,43 @@ function loadRealtimeMessages() {
                             careerVal === "Thành đạt/Cấp cao" || 
                             lifeVal === "Hoàn hảo/Siêu cấp";
 
+        let oldMemberCode = currentMemberCode; 
+        let isCompletelyNewVCode = false; // Cờ theo dõi trường hợp 0.01% (Dời nhà)
+
         if (shouldBeElite && !currentMemberCode.startsWith("V")) {
             currentMemberCode = "V" + currentMemberCode.substring(1);
-            clockSecondsLeft = TIME_FREEZE_TINHHOA; // 3 phút đếm ngược cho Tinh hoa
+            clockSecondsLeft = TIME_FREEZE_TINHHOA; 
         }
+
+        // --- VÒNG LẶP KIỂM TRA CHỐNG TRÙNG LẶP TUYỆT ĐỐI ---
+        let isCodeUnique = false;
+        while (!isCodeUnique) {
+            try {
+                let checkDoc = await db.collection("users").doc(currentMemberCode).get();
+                
+                if (checkDoc.exists) {
+                    // Nếu tài khoản ĐÃ ĐĂNG NHẬP và đang lưu đè lên chính mã cũ của mình -> Cập nhật hồ sơ -> Hợp lệ
+                    if (isUserLoggedIn && currentMemberCode === oldMemberCode) {
+                        isCodeUnique = true;
+                    } else {
+                        // BỊ TRÙNG MÃ: Sinh ra mã hoàn toàn mới!
+                        let isVip = currentMemberCode.startsWith("V");
+                        currentMemberCode = generateUniqueMemberCode(isVip);
+                        
+                        // Nếu đây là ca nâng cấp từ P lên V bị trùng lặp, bật cờ "Dời nhà" để bảo lưu chat
+                        if (isUserLoggedIn && oldMemberCode.startsWith("P") && isVip) {
+                            isCompletelyNewVCode = true;
+                        }
+                    }
+                } else {
+                    // Không có ai dùng mã này -> An toàn!
+                    isCodeUnique = true;
+                }
+            } catch(e) {
+                isCodeUnique = true; // Bỏ qua thoát vòng lặp nếu đứt mạng
+            }
+        }
+        // ----------------------------------------------------
 
         const profileObj = {
             code: currentMemberCode,
@@ -2171,15 +2252,108 @@ function loadRealtimeMessages() {
         };
 
         try {
-            // 1. Đưa mật khẩu vào Két sắt Firebase Auth bằng Email ảo
-            const fakeEmail = currentMemberCode + "@seeing.love";
-            await firebase.auth().createUserWithEmailAndPassword(fakeEmail, newPass.trim());
+            // 1. Chỉ đưa mật khẩu vào Auth nếu là ĐĂNG KÝ MỚI hoặc vừa ĐỔI MÃ (Từ P sang V)
+            // Ngăn chặn lỗi văng ứng dụng khi người dùng cũ chỉ muốn cập nhật lại thông tin hồ sơ
+            if (!isUserLoggedIn || oldMemberCode !== currentMemberCode) {
+                const fakeEmail = currentMemberCode + "@seeing.love";
+                await firebase.auth().createUserWithEmailAndPassword(fakeEmail, newPass.trim());
+            }
 
-            // 2. Lưu hồ sơ sạch (không chứa mật khẩu) lên Firestore
+            // 2. Lưu hồ sơ sạch lên Firestore
             await db.collection("users").doc(currentMemberCode).set(profileObj);
+
+            // [ĐỒNG BỘ CHAT BẢO LƯU CHO CA NÂNG CẤP HOẶC DỜI NHÀ]
+            if (isUserLoggedIn && oldMemberCode !== currentMemberCode) {
+                const matchesSnap = await db.collection("matches").where("members", "array-contains", oldMemberCode).get();
+                
+                if (isCompletelyNewVCode) {
+                    // XỬ LÝ CA CẤP TỐC 0.01%: "Dời nhà" & "Chìa khóa mới"
+                    for (let docSnap of matchesSnap.docs) {
+                        let matchData = docSnap.data();
+                        let partnerCode = matchData.members.find(m => m !== oldMemberCode);
+                        if (!partnerCode) continue;
+
+                        let oldMatchId = getCoreMatchId(oldMemberCode, partnerCode);
+                        let newMatchId = getCoreMatchId(currentMemberCode, partnerCode);
+                        let newMembers = matchData.members.map(m => m === oldMemberCode ? currentMemberCode : m);
+                        
+                        // A. Tạo Match phòng chat mới
+                        await db.collection("matches").doc(newMatchId).set({
+                            ...matchData,
+                            members: newMembers,
+                            updatedAt: new Date().toISOString()
+                        });
+
+                        // B. Giải mã tin cũ (Bằng Key cũ) -> Mã hóa lại (Bằng Key mới) -> Chuyển nhà
+                        let msgsSnap = await db.collection("chats").doc(oldMatchId).collection("messages").get();
+                        let batch = db.batch();
+                        
+                        msgsSnap.forEach(msgDoc => {
+                            let msgData = msgDoc.data();
+                            if (msgData.type === 'text') {
+                                try {
+                                    let bytes = CryptoJS.AES.decrypt(msgData.text, oldMatchId);
+                                    let decryptedText = bytes.toString(CryptoJS.enc.Utf8);
+                                    if (decryptedText) {
+                                        msgData.text = CryptoJS.AES.encrypt(decryptedText, newMatchId).toString();
+                                    }
+                                } catch(e) {}
+                            }
+                            let newMsgRef = db.collection("chats").doc(newMatchId).collection("messages").doc(msgDoc.id);
+                            batch.set(newMsgRef, msgData);
+                            batch.delete(msgDoc.ref); // Xóa sạch tin cũ ở nhà cũ
+                        });
+
+                        // C. Gửi thông báo hệ thống ngay trong khung chat (Đã mã hóa)
+                        let sysMsgText = CryptoJS.AES.encrypt(`⚠️ [HỆ THỐNG]: Thành viên đã nâng cấp và đổi sang mã định ${currentMemberCode}.`, newMatchId).toString();
+                        let sysMsgRef = db.collection("chats").doc(newMatchId).collection("messages").doc();
+                        batch.set(sysMsgRef, {
+                            sender: currentMemberCode,
+                            text: sysMsgText,
+                            type: "text",
+                            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+
+                        await batch.commit();
+                        await db.collection("matches").doc(oldMatchId).delete(); // Đập bỏ Match cũ
+                    }
+                } else {
+                    // TRƯỜNG HỢP 99.99%: Đổi P sang V nhưng giữ nguyên đuôi
+                    const batch = db.batch();
+                    matchesSnap.forEach(doc => {
+                        let matchData = doc.data();
+                        let newMembers = matchData.members.map(m => m === oldMemberCode ? currentMemberCode : m);
+                        batch.update(doc.ref, { members: newMembers });
+                    });
+                    await batch.commit();
+                }
+                
+                // Cập nhật giao diện phòng chat hiện tại nếu bạn đang mở dở
+                if (activeChatPartnerCode) {
+                    document.getElementById('profile-member-code').innerText = currentMemberCode;
+                    if (isCompletelyNewVCode) loadRealtimeMessages(); // Ép load lại luồng chat vì ID phòng đã thay đổi
+                }
+            }
+
+            // [TÍNH NĂNG 1] ĐỒNG BỘ CHAT BẢO LƯU: Nếu mã bị đổi từ P sang V, cập nhật ngay vào Matches
+            if (oldMemberCode !== currentMemberCode) {
+                const matchesSnap = await db.collection("matches").where("members", "array-contains", oldMemberCode).get();
+                const batch = db.batch();
+                matchesSnap.forEach(doc => {
+                    let matchData = doc.data();
+                    let newMembers = matchData.members.map(m => m === oldMemberCode ? currentMemberCode : m);
+                    batch.update(doc.ref, { members: newMembers });
+                });
+                await batch.commit();
+                
+                // Cập nhật giao diện phòng chat hiện tại nếu đang mở dở
+                if (activeChatPartnerCode) {
+                    document.getElementById('profile-member-code').innerText = currentMemberCode;
+                }
+            }
             
             localStorage.setItem('last_logged_code', currentMemberCode);
-            localStorage.setItem('is_logged_in', 'true');
+            sessionStorage.setItem('is_logged_in', 'true');
             
             isUserLoggedIn = true;
             if (shouldBeElite) isEliteMember = true;
@@ -2198,7 +2372,7 @@ function loadRealtimeMessages() {
             
             applyMemberSearchPermission();
             updatePointFloatingBadgeUI();
-            alert(`✅ Đã lưu hồ sơ bảo mật thành công!\nMã định danh: ${currentMemberCode}`);
+            alert(`✅ Đã lưu hồ sơ bảo mật thành công!\nMã thành viên: ${currentMemberCode}`);
             showSection('search-section');
         } catch(e) {
             console.error("Lỗi đăng ký:", e);
@@ -2271,8 +2445,8 @@ function loadRealtimeMessages() {
         switchCheckoutCurrency('VND');
         showSection('checkout-section');
 
-        // KÍCH HOẠT LẮNG NGHE TỰ ĐỘNG WEBHOOK KHI MỞ BẢNG THANH TOÁN GÓI
-        watchUserPointsForPayment(currentMemberCode, userPoints);
+        // KÍCH HOẠT LẮNG NGHE TỰ ĐỘNG WEBHOOK THEO ĐÚNG MÃ ĐANG CHỜ (pendingEliteCode)
+        watchUserPointsForPayment(pendingEliteCode, userPoints);
     }
 
     function switchCheckoutCurrency(curr) {
@@ -2507,32 +2681,51 @@ function loadRealtimeMessages() {
         alert("Tài khoản đã bị xóa. Vui lòng tạo tài khoản mới.");
     }
 
-    // --- HÀM LẮNG NGHE TỰ ĐỘNG CẬP NHẬT POINT TỪ SEPAY WEBHOOK ---
-    let paymentListenerUnsubscribe = null;
+    // --- HÀM LẮNG NGHE TỰ ĐỘNG CẬP NHẬT TỪ SEPAY WEBHOOK (ĐÃ TÍCH HỢP CHO CẢ POINT VÀ NÂNG CẤP TINH HOA) ---
+let paymentListenerUnsubscribe = null;
 
-    function watchUserPointsForPayment(memberCode, oldPoints) {
-        if (paymentListenerUnsubscribe) paymentListenerUnsubscribe();
+function watchUserPointsForPayment(memberCode, oldPoints) {
+    if (paymentListenerUnsubscribe) paymentListenerUnsubscribe();
 
-        paymentListenerUnsubscribe = db.collection("users").doc(memberCode).onSnapshot((doc) => {
-            if (doc.exists) {
-                let data = doc.data();
-                let currentCloudPoints = parseInt(data.points) || 0;
+    paymentListenerUnsubscribe = db.collection("users").doc(memberCode).onSnapshot((doc) => {
+        if (doc.exists) {
+            let data = doc.data();
+            let currentCloudPoints = parseInt(data.points) || 0;
+            let isCloudElite = data.isElite || false;
 
-                if (currentCloudPoints > oldPoints) {
-                    userPoints = currentCloudPoints;
-                    updatePointFloatingBadgeUI();
-                    
-                    closePointTopupModal();
-                    alert(`🎉 Hệ thống đã tự động nhận được chuyển khoản! Đã cộng thêm Point vào tài khoản của anh.`);
-                    
-                    if (paymentListenerUnsubscribe) {
-                        paymentListenerUnsubscribe();
-                        paymentListenerUnsubscribe = null;
-                    }
+            // Kiểm tra nếu điểm tăng lên HOẶC tài khoản vừa được hệ thống bật cờ nâng cấp Tinh hoa (isElite)
+            if (currentCloudPoints > oldPoints || isCloudElite) {
+                userPoints = currentCloudPoints;
+                if (isCloudElite) isEliteMember = true;
+                
+                updatePointFloatingBadgeUI();
+                
+                // 1. Đóng toàn bộ các bảng nạp tiền, bảng chọn gói Elite, bảng Checkout QR đang mở
+                closePointTopupModal();
+                const eliteModal = document.getElementById('elite-payment-modal');
+                if (eliteModal) eliteModal.classList.add('hidden');
+                
+                const checkoutSec = document.getElementById('checkout-section');
+                if (checkoutSec && !checkoutSec.classList.contains('hidden')) {
+                    checkoutSec.classList.add('hidden');
+                }
+
+                // 2. Thông báo thành công rực rỡ
+                alert(`🎉 Hệ thống đã tự động đối soát và nhận được thanh toán thành công! Giao dịch đã được cập nhật vào tài khoản.`);
+                
+                // 3. Cập nhật lại quyền hạn tìm kiếm & chuyển thẳng về màn hình Khám phá
+                applyMemberSearchPermission();
+                showSection('search-section');
+                
+                // Hủy lắng nghe sau khi đã xử lý xong
+                if (paymentListenerUnsubscribe) {
+                    paymentListenerUnsubscribe();
+                    paymentListenerUnsubscribe = null;
                 }
             }
-        });
-    }
+        }
+    });
+}
 // CHẶN CHUỘT PHẢI VÀ PHÍM TẮT XEM MÃ NGUỒN
     document.addEventListener('contextmenu', event => event.preventDefault());
 
@@ -2600,7 +2793,7 @@ function loadRealtimeMessages() {
         <p id="connect-request-text" class="text-xs text-gray-600 font-medium">Thành viên muốn kết nối trò chuyện.</p>
         <div class="flex gap-2 pt-2">
             <button onclick="acceptDirectConnect()" class="flex-1 py-2.5 bg-emerald-600 text-white font-bold rounded-xl text-xs shadow hover:bg-emerald-700 transition">Chấp nhận & Chat</button>
-            <button onclick="document.getElementById('connect-request-modal').classList.add('hidden')" class="flex-1 py-2.5 bg-rose-50 text-rose-700 border border-rose-200 font-bold rounded-xl text-xs shadow hover:bg-rose-100 transition">Từ chối</button>
+            <button onclick="rejectDirectConnect()" class="flex-1 py-2.5 bg-rose-50 text-rose-700 border border-rose-200 font-bold rounded-xl text-xs shadow hover:bg-rose-100 transition">Từ chối</button>
         </div>
     </div>
 </div>
@@ -2639,7 +2832,7 @@ function loadRealtimeMessages() {
                         <span id="price-hide-display" class="font-black text-rose-600">+10.000.000đ</span>
                     </div>
                 </div>
-                <p class="text-[11px] text-amber-800 font-semibold mt-1 italic">💡 Thành viên V có từ 10.100 points có thể dùng Point đổi trực tiếp mà không cần chuyển khoản.</p>
+                <p class="text-[11px] text-amber-800 font-semibold mt-1 italic">💡 Thành viên V có thể quy đổi 10.000 points để mua gói dịch vụ.</p>
             </label>
         </div>
         <div class="border-t pt-3 mb-5 flex justify-between items-center text-xs">
@@ -2706,10 +2899,10 @@ function loadRealtimeMessages() {
     <div class="w-full p-4 bg-amber-50 rounded-2xl border-2 border-amber-300 text-center space-y-2 shadow-sm">
         <div class="flex items-center justify-center gap-2 text-amber-900 font-extrabold text-xs">
             <i class="fa-solid fa-triangle-exclamation text-amber-600 text-base"></i>
-            <span>Hệ thống đang chờ đối soát giao dịch tự động</span>
+            <span>Chờ đối soát giao dịch tự động</span>
         </div>
         <p class="text-[11px] text-gray-600 leading-relaxed">
-            Vui lòng chuyển khoản. Gói dịch vụ sẽ được hệ thống tự động kích hoạt ngay sau khi chuyển khoản thành công.
+            Gói dịch vụ sẽ tự động kích hoạt ngay sau khi chuyển khoản thành công.
         </p>
     </div>
 </section>
@@ -2730,7 +2923,7 @@ function loadRealtimeMessages() {
         <div>
             <h4 class="font-bold text-amber-300 uppercase tracking-wider mb-2 text-xs">THÔNG TIN & ĐIỀU KHOẢN</h4>
             <ul class="space-y-2 text-rose-200 text-xs">
-                <li><a href="#" onclick="openInfoModal('mission')" class="hover:underline">Giới thiệu Seeing Love & Sứ mệnh</a></li>
+                <li><a href="#" onclick="openInfoModal('mission')" class="hover:underline">Sử dụng an toàn & Miễn trừ</a></li>
                 <li><a href="#" onclick="openInfoModal('privacy')" class="hover:underline">Chính sách bảo mật thông tin</a></li>
                 <li><a href="#" onclick="openInfoModal('guide')" class="hover:underline">Hướng dẫn sử dụng</a></li>
             </ul>

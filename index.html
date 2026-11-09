@@ -2850,7 +2850,7 @@ function loadRealtimeMessages() {
             });
             const matchId = getCoreMatchId(currentMemberCode, activeChatPartnerCode);
             await db.collection("matches").doc(matchId).delete();
-            alert("🔒 Đã chặn thành công.");
+            alert("⛔ Đã chặn thành công.");
             openChatList();
         } catch(e) {}
     }
@@ -3121,13 +3121,22 @@ function watchUserPointsForPayment(memberCode, oldPoints) {
 
         // 1. Biến hình Menu 3 chấm thành Menu Quản trị Nhóm
         const dropMenu = document.getElementById('chat-options-dropdown');
+        const isCoAdmin = (activeGroupFullData.coAdmins || []).includes(currentMemberCode);
+        
         if (activeGroupFullData.adminCode === currentMemberCode) {
             dropMenu.innerHTML = `
-                <button onclick="event.stopPropagation(); openGroupSettingsModal();" class="w-full text-left px-4 py-2.5 hover:bg-rose-50 text-amber-700 font-bold flex items-center gap-2"><i class="fa-solid fa-gear"></i> Cài đặt Nhóm</button>
-                <button onclick="event.stopPropagation(); leaveGroupChat();" class="w-full text-left px-4 py-2.5 hover:bg-rose-50 text-red-600 font-bold flex items-center gap-2"><i class="fa-solid fa-right-from-bracket"></i> Rời nhóm</button>
+                <button onclick="event.stopPropagation(); openGroupSettingsModal();" class="w-full text-left px-4 py-2.5 hover:bg-rose-50 text-amber-700 font-bold flex items-center gap-2"><i class="fa-solid fa-users-gear"></i> Quản lý Nhóm</button>
+                <button onclick="event.stopPropagation(); deleteGroupChat();" class="w-full text-left px-4 py-2.5 hover:bg-rose-50 text-red-600 font-bold flex items-center gap-2"><i class="fa-solid fa-trash-can"></i> Giải tán Nhóm</button>
             `;
         } else {
-            dropMenu.innerHTML = `<button onclick="event.stopPropagation(); leaveGroupChat();" class="w-full text-left px-4 py-2.5 hover:bg-rose-50 text-red-600 font-bold flex items-center gap-2"><i class="fa-solid fa-right-from-bracket"></i> Rời nhóm</button>`;
+            // Phó nhóm vẫn được cấp nút Quản lý để thao tác Thêm/Xóa nhân sự, Nhân viên thì trắng tay
+            let manageBtnHtml = isCoAdmin ? 
+                `<button onclick="event.stopPropagation(); openGroupSettingsModal();" class="w-full text-left px-4 py-2.5 hover:bg-rose-50 text-amber-700 font-bold flex items-center gap-2"><i class="fa-solid fa-users-gear"></i> Quản lý Nhóm</button>` : ``;
+            
+            dropMenu.innerHTML = `
+                ${manageBtnHtml}
+                <button onclick="event.stopPropagation(); leaveGroupChat();" class="w-full text-left px-4 py-2.5 hover:bg-rose-50 text-red-600 font-bold flex items-center gap-2"><i class="fa-solid fa-right-from-bracket"></i> Rời nhóm</button>
+            `;
         }
 
         // 2. Kích hoạt cơ chế Làm mờ ô chat nếu Admin cấm ngôn
@@ -3155,8 +3164,8 @@ function watchUserPointsForPayment(memberCode, oldPoints) {
                         ? "bg-amber-500 text-white ml-auto rounded-tl-2xl rounded-tr-2xl rounded-bl-2xl shadow" 
                         : "bg-white text-gray-800 mr-auto rounded-tl-2xl rounded-tr-2xl rounded-br-2xl border border-amber-200 shadow-sm";
                     
-                    // Hiện tên người gửi nếu là tin nhắn của người khác
-                    let senderLabel = !isMe ? `<span class="block text-[10px] font-black text-amber-700 mb-1 opacity-70 border-b border-amber-100 pb-0.5">${msg.sender}</span>` : '';
+                    // [CHẶNG 3]: Nâng cấp tên người gửi thành nút bấm để chuyển sang Chat 1-1
+                    let senderLabel = !isMe ? `<span onclick="connectToGroupMember('${msg.sender}')" class="block text-[10px] font-black text-amber-700 mb-1 opacity-70 border-b border-amber-100 pb-0.5 cursor-pointer hover:text-amber-900 transition" title="Nhấn để trò chuyện riêng 1-1">${msg.sender} <i class="fa-solid fa-comment-dots ml-1"></i></span>` : '';
 
                     // GIẢI MÃ TIN NHẮN TỪ ĐÁM MÂY (Dùng Group Key)
                     let displayText = msg.text;
@@ -3189,6 +3198,32 @@ function watchUserPointsForPayment(memberCode, oldPoints) {
             });
     }
 
+    // [CHẶNG 3]: HÀM TẠO KẾT NỐI VÀ DỊCH CHUYỂN TỪ NHÓM SANG PHÒNG 1-1
+    async function connectToGroupMember(targetCode) {
+        if (targetCode === currentMemberCode) return;
+        if (!confirm(`Bạn có muốn mở phòng trò chuyện riêng 1-1 với thành viên [${targetCode}] không?`)) return;
+        
+        try {
+            const matchId = getCoreMatchId(currentMemberCode, targetCode);
+            const matchDoc = await db.collection("matches").doc(matchId).get();
+            
+            let partnerDoc = await db.collection("users").doc(targetCode).get();
+            let pData = partnerDoc.exists ? partnerDoc.data() : { code: targetCode };
+
+            // Nếu 2 người chưa từng chat 1-1, hệ thống sẽ tự động tạo phòng kết nối nhanh
+            if (!matchDoc.exists) {
+                await db.collection("matches").doc(matchId).set({
+                    members: [currentMemberCode, targetCode],
+                    updatedAt: new Date().toISOString()
+                });
+            }
+            
+            // Nhảy xuyên không gian từ Nhóm sang phòng 1-1 ngay lập tức
+            openChatRoom(targetCode, pData);
+        } catch(e) { 
+            alert("❌ Lỗi khi thiết lập kết nối 1-1 đám mây!"); 
+        }
+    }
     // SỬA HÀM GỬI TIN NHẮN ĐỂ PHÂN BIỆT RÕ CHAT 1-1 HAY CHAT NHÓM
     async function sendTextMessage() {
         if (!isUserLoggedIn || !currentMemberCode) {
@@ -3209,13 +3244,14 @@ function watchUserPointsForPayment(memberCode, oldPoints) {
             
             // [LOGIC GIAI ĐOẠN 3]: Kiểm tra quyền nhắn tin
             let mode = activeGroupFullData.messagingMode || 'free';
+            let isCoAdmin = (activeGroupFullData.coAdmins || []).includes(currentMemberCode);
             let isAllowed = false;
+            
             if (mode === 'free') isAllowed = true;
-            if (mode === 'admin_only' && activeGroupFullData.adminCode === currentMemberCode) isAllowed = true;
-            if (mode === 'custom' && (activeGroupFullData.adminCode === currentMemberCode || (activeGroupFullData.allowedMessengers || []).includes(currentMemberCode))) isAllowed = true;
+            if (mode === 'admin_only' && (activeGroupFullData.adminCode === currentMemberCode || isCoAdmin)) isAllowed = true;
             
             if (!isAllowed) {
-                alert("🔒 Trưởng nhóm đã thiết lập chế độ Cấm ngôn. Bạn chỉ được phép xem tin nhắn.");
+                alert("🔇 Trưởng nhóm đã thiết lập chế độ Cấm ngôn. Bạn chỉ được phép xem tin nhắn.");
                 return;
             }
 
@@ -3264,10 +3300,20 @@ function watchUserPointsForPayment(memberCode, oldPoints) {
 
     function openGroupSettingsModal() {
         if (!activeGroupId) return;
-        document.getElementById('setting-messaging-mode').value = activeGroupFullData.messagingMode || 'free';
         
-        // Lấy PIN đang có điền sẵn vào ô nhập (nếu có)
-        document.getElementById('setting-group-pin').value = activeGroupFullData.groupPin || '';
+        const isAdmin = activeGroupFullData.adminCode === currentMemberCode;
+        const isCoAdmin = (activeGroupFullData.coAdmins || []).includes(currentMemberCode);
+
+        // Tự động Hiển thị/Ẩn các khu vực tùy theo quyền lực của người đang mở bảng
+        document.getElementById('admin-settings-section').classList.toggle('hidden', !isAdmin);
+        document.getElementById('btn-save-group-settings').classList.toggle('hidden', !isAdmin);
+        document.getElementById('add-member-section').classList.toggle('hidden', !(isAdmin || isCoAdmin));
+
+        if (isAdmin) {
+            document.getElementById('setting-messaging-mode').value = activeGroupFullData.messagingMode || 'free';
+        }
+
+        renderGroupActiveMembersList(); // Gọi lệnh vẽ danh sách nhân sự
         
         document.getElementById('group-settings-modal').classList.remove('hidden');
         document.getElementById('chat-options-dropdown').classList.add('hidden');
@@ -3275,37 +3321,178 @@ function watchUserPointsForPayment(memberCode, oldPoints) {
 
     async function saveGroupSettings() {
         const newMode = document.getElementById('setting-messaging-mode').value;
-        const newPin = document.getElementById('setting-group-pin').value.trim();
-        
-        if (newPin.length > 0 && newPin.length !== 4) {
-            alert("Mã PIN nhóm phải bao gồm đúng 4 chữ số, hoặc để trống để không khóa PIN.");
-            return;
-        }
-
         try {
             await db.collection("groups").doc(activeGroupId).update({
                 messagingMode: newMode,
-                groupPin: newPin, // Lưu PIN lên đám mây
                 updatedAt: new Date().toISOString()
             });
             activeGroupFullData.messagingMode = newMode; 
-            activeGroupFullData.groupPin = newPin; // Cập nhật ngay trên máy tính Admin
-            
             applyChatPermissionsUI(); 
             document.getElementById('group-settings-modal').classList.add('hidden');
-            alert("✅ Đã lưu cài đặt Quản trị và Mã PIN Nhóm thành công!");
-        } catch(e) {
-            alert("❌ Lỗi khi lưu cài đặt đám mây.");
-        }
+            alert("✅ Đã lưu Cài đặt Quyền nhắn tin thành công!");
+        } catch(e) { alert("❌ Lỗi khi lưu cài đặt đám mây."); }
     }
 
+    // ----------------------------------------------------
+    // BỘ HÀM QUẢN LÝ NHÂN SỰ TỰ ĐỘNG THEO CHỨC DANH
+    // ----------------------------------------------------
+    function renderGroupActiveMembersList() {
+        const listContainer = document.getElementById('group-active-members-list');
+        const countSpan = document.getElementById('group-member-count');
+        listContainer.innerHTML = '';
+        
+        let members = activeGroupFullData.members || [];
+        countSpan.innerText = `${members.length} thành viên`;
+
+        const isAdmin = activeGroupFullData.adminCode === currentMemberCode;
+        const isCoAdmin = (activeGroupFullData.coAdmins || []).includes(currentMemberCode);
+
+        members.forEach(code => {
+            let roleHtml = '';
+            let actionHtml = '';
+            let isThisUserAdmin = (activeGroupFullData.adminCode === code);
+            let isThisUserCoAdmin = (activeGroupFullData.coAdmins || []).includes(code);
+
+            // Gắn nhãn chức vụ
+            if (isThisUserAdmin) {
+                roleHtml = `<span class="bg-rose-100 text-rose-700 px-1.5 py-0.5 rounded text-[9px] font-black border border-rose-300 ml-1.5">Trưởng nhóm</span>`;
+            } else if (isThisUserCoAdmin) {
+                roleHtml = `<span class="bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded text-[9px] font-black border border-amber-300 ml-1.5">Phó nhóm</span>`;
+            }
+
+            // Gắn nút hành động (Không tự cấp nút thao tác lên chính bản thân mình)
+            if (code !== currentMemberCode) {
+                if (isAdmin) {
+                    // Trưởng nhóm được quyền Xóa mọi người, và Phong/Hạ Phó nhóm
+                    let promoteBtnStr = isThisUserCoAdmin ? 
+                        `<button onclick="toggleCoAdminRole('${code}', false)" class="px-2.5 py-1.5 bg-gray-200 text-gray-700 font-bold rounded-lg hover:bg-gray-300 shadow-sm text-[10px]">Hạ cấp</button>` : 
+                        `<button onclick="toggleCoAdminRole('${code}', true)" class="px-2.5 py-1.5 bg-amber-100 text-amber-700 font-bold rounded-lg hover:bg-amber-200 shadow-sm text-[10px]">Phong Phó</button>`;
+                    actionHtml = `
+                        <div class="flex gap-1.5 shrink-0">
+                            ${promoteBtnStr}
+                            <button onclick="removeMemberFromGroup('${code}')" class="px-2.5 py-1.5 bg-rose-100 text-rose-700 font-bold rounded-lg hover:bg-rose-200 shadow-sm text-[10px]"><i class="fa-solid fa-user-minus"></i> Đuổi</button>
+                        </div>
+                    `;
+                } else if (isCoAdmin && !isThisUserAdmin && !isThisUserCoAdmin) {
+                    // Phó nhóm chỉ được xóa nhân viên thường
+                    actionHtml = `<button onclick="removeMemberFromGroup('${code}')" class="px-2.5 py-1.5 bg-rose-100 text-rose-700 font-bold rounded-lg hover:bg-rose-200 shadow-sm text-[10px]"><i class="fa-solid fa-user-minus"></i> Đuổi</button>`;
+                }
+            }
+
+            // Đổ giao diện 1 người ra danh sách
+            listContainer.innerHTML += `
+                <div class="flex justify-between items-center bg-gray-50/50 p-2.5 rounded-xl border border-gray-200 mb-2">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-8 h-8 rounded-full bg-white flex items-center justify-center text-[10px] text-gray-400 border border-gray-200 shadow-sm"><i class="fa-solid fa-user"></i></div>
+                        <span class="font-black text-sm text-gray-800">${code}${roleHtml}</span>
+                    </div>
+                    ${actionHtml}
+                </div>
+            `;
+        });
+    }
+
+    async function addNewMemberToGroup() {
+        const inputElem = document.getElementById('setting-add-member-input');
+        const newCode = inputElem.value.trim().toUpperCase();
+        if (!newCode) return;
+        if ((activeGroupFullData.members || []).includes(newCode)) {
+            alert("Thành viên này đã có trong nhóm!"); return;
+        }
+
+        const btn = event.currentTarget;
+        let oldHtml = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+
+        try {
+            const doc = await db.collection("users").doc(newCode).get();
+            if (doc.exists) {
+                const newMembers = [...activeGroupFullData.members, newCode];
+                await db.collection("groups").doc(activeGroupId).update({ 
+                    members: newMembers,
+                    updatedAt: new Date().toISOString()
+                });
+                activeGroupFullData.members = newMembers;
+                inputElem.value = '';
+                renderGroupActiveMembersList(); // Vẽ lại danh sách ngay lập tức
+                alert(`✅ Đã thêm thành viên mã ${newCode} vào nhóm!`);
+            } else { alert(`❌ Không tìm thấy nhân sự mang mã ${newCode}!`); }
+        } catch(e) { alert("Lỗi kết nối đám mây!"); }
+        btn.innerHTML = oldHtml;
+    }
+
+    async function removeMemberFromGroup(code) {
+        if (!confirm(`CẢNH BÁO: Bạn có chắc chắn muốn đuổi nhân sự ${code} khỏi nhóm?`)) return;
+        try {
+            const newMembers = activeGroupFullData.members.filter(m => m !== code);
+            let newCoAdmins = activeGroupFullData.coAdmins || [];
+            newCoAdmins = newCoAdmins.filter(m => m !== code); // Hạ luôn chức vụ nếu đang là Phó nhóm
+
+            await db.collection("groups").doc(activeGroupId).update({ 
+                members: newMembers,
+                coAdmins: newCoAdmins,
+                updatedAt: new Date().toISOString()
+            });
+            activeGroupFullData.members = newMembers;
+            activeGroupFullData.coAdmins = newCoAdmins;
+            renderGroupActiveMembersList(); // Vẽ lại danh sách ngay lập tức
+        } catch(e) { alert("Lỗi kết nối đám mây!"); }
+    }
+
+    async function toggleCoAdminRole(code, isPromoting) {
+        let newCoAdmins = activeGroupFullData.coAdmins || [];
+        if (isPromoting) {
+            if (!newCoAdmins.includes(code)) newCoAdmins.push(code);
+        } else {
+            newCoAdmins = newCoAdmins.filter(m => m !== code);
+        }
+
+        try {
+            await db.collection("groups").doc(activeGroupId).update({ 
+                coAdmins: newCoAdmins,
+                updatedAt: new Date().toISOString()
+            });
+            activeGroupFullData.coAdmins = newCoAdmins;
+            renderGroupActiveMembersList(); // Vẽ lại danh sách ngay lập tức
+        } catch(e) { alert("Lỗi đám mây!"); }
+    }
     async function leaveGroupChat() {
         if(!confirm("Bạn có chắc chắn muốn rời khỏi nhóm làm việc này?")) return;
         try {
-            // Logic rời nhóm sẽ hoàn thiện ở Tính năng 3 (Quản lý nhân sự)
+            // Lọc bỏ mã của bản thân khỏi danh sách thành viên và phó nhóm
+            const newMembers = activeGroupFullData.members.filter(m => m !== currentMemberCode);
+            const newCoAdmins = (activeGroupFullData.coAdmins || []).filter(m => m !== currentMemberCode);
+            
+            await db.collection("groups").doc(activeGroupId).update({
+                members: newMembers,
+                coAdmins: newCoAdmins,
+                updatedAt: new Date().toISOString()
+            });
+            
             alert("Rời nhóm thành công.");
             openChatList();
-        } catch(e) {}
+        } catch(e) {
+            alert("❌ Lỗi kết nối đám mây khi rời nhóm.");
+        }
+    }
+
+    async function deleteGroupChat() {
+        if(!confirm("⚠️ CẢNH BÁO ĐỎ: Bạn sắp GIẢI TÁN toàn bộ nhóm này. Mọi dữ liệu sẽ bị xóa vĩnh viễn và không thể khôi phục. Bạn có chắc chắn?")) return;
+        try {
+            // 1. Quét và xóa toàn bộ tin nhắn bên trong nhóm
+            const messagesSnap = await db.collection("groups").doc(activeGroupId).collection("messages").get();
+            const batch = db.batch();
+            messagesSnap.forEach(doc => { batch.delete(doc.ref); });
+            await batch.commit();
+            
+            // 2. Đập bỏ hoàn toàn Group Document
+            await db.collection("groups").doc(activeGroupId).delete();
+            
+            alert("🗑️ Đã giải tán nhóm thành công.");
+            openChatList(); // Tự động đẩy Trưởng nhóm ra ngoài Hộp thư
+        } catch(e) {
+            alert("❌ Lỗi đám mây khi giải tán nhóm.");
+        }
     }
 
     // HÀM LÕI: KIỂM SOÁT GIAO DIỆN Ô NHẬP TIN NHẮN THEO QUYỀN HẠN
@@ -3319,8 +3506,11 @@ function watchUserPointsForPayment(memberCode, oldPoints) {
         // Nếu đang ở trong Nhóm, tiến hành kiểm tra luật của Nhóm
         if (activeGroupId) {
             let mode = activeGroupFullData.messagingMode || 'free';
-            if (mode === 'admin_only' && activeGroupFullData.adminCode !== currentMemberCode) {
-                isAllowed = false; // Bị cấm ngôn
+            let isCoAdmin = (activeGroupFullData.coAdmins || []).includes(currentMemberCode);
+            
+            // Chỉ cấm ngôn nếu không phải Trưởng nhóm VÀ cũng không phải Phó nhóm
+            if (mode === 'admin_only' && activeGroupFullData.adminCode !== currentMemberCode && !isCoAdmin) {
+                isAllowed = false; 
             }
         }
 
@@ -3566,34 +3756,56 @@ function watchUserPointsForPayment(memberCode, oldPoints) {
     </div>
 </div>
 
-<!-- MODAL CÀI ĐẶT NHÓM (CHO ADMIN) -->
+<!-- MODAL QUẢN LÝ TỔNG HỢP NHÓM -->
 <div id="group-settings-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[999] hidden flex items-center justify-center p-4">
-    <div class="bg-white p-5 rounded-3xl shadow-2xl max-w-sm w-full border-2 border-amber-300 relative text-sm space-y-4">
+    <div class="bg-white p-5 rounded-3xl shadow-2xl max-w-sm w-full border-2 border-amber-300 relative text-sm space-y-4 max-h-[90vh] flex flex-col">
         <button onclick="document.getElementById('group-settings-modal').classList.add('hidden')" class="absolute top-4 right-4 w-7 h-7 rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 flex items-center justify-center text-sm transition"><i class="fa-solid fa-xmark"></i></button>
-        <div class="text-center pb-2 border-b border-gray-100">
+        
+        <div class="text-center pb-2 border-b border-gray-100 shrink-0">
             <div class="w-12 h-12 bg-amber-100 text-amber-700 rounded-2xl flex items-center justify-center mx-auto text-xl mb-2 shadow-inner">
-                <i class="fa-solid fa-gear"></i>
+                <i class="fa-solid fa-users-gear"></i>
             </div>
-            <h3 class="font-black text-gray-900 text-base">Cài đặt Quản trị Nhóm</h3>
+            <h3 class="font-black text-gray-900 text-base">Thông tin & Quản lý Nhóm</h3>
         </div>
         
-        <div class="space-y-3">
-            <label class="block font-bold text-gray-700 text-xs mb-1">Quyền gửi tin nhắn:</label>
-            <select id="setting-messaging-mode" class="w-full px-3 py-3 rounded-xl border border-amber-200 bg-amber-50 font-bold text-amber-950 outline-none">
-                <option value="free">Tự do (Tất cả thành viên đều được nhắn)</option>
-                <option value="admin_only">Chỉ Quản trị (Chỉ Admin được nhắn)</option>
-            </select>
+        <div class="overflow-y-auto flex-1 space-y-4 pr-1 custom-scrollbar">
+            <!-- 1. Cài đặt quyền chat (Chỉ Admin mới thấy khu vực này) -->
+            <div id="admin-settings-section" class="space-y-2 hidden bg-amber-50 p-3 rounded-2xl border border-amber-200">
+                <label class="block font-bold text-amber-900 text-xs">Quyền gửi tin nhắn toàn nhóm:</label>
+                <select id="setting-messaging-mode" class="w-full px-3 py-2.5 rounded-xl border border-amber-300 bg-white font-bold text-amber-950 outline-none text-xs">
+                    <option value="free">Tự do (Tất cả đều được nhắn)</option>
+                    <option value="admin_only">Cấm ngôn (Chỉ Admin & Phó Nhóm)</option>
+                </select>
+            </div>
+
+            <!-- 2. Thêm thành viên (Admin và Phó Nhóm thấy) -->
+            <div id="add-member-section" class="space-y-2 hidden border-t border-gray-100 pt-3">
+                <label class="block font-bold text-gray-700 text-xs">Thêm thành viên mới (Mã P.../V...):</label>
+                <div class="flex gap-2">
+                    <input type="text" id="setting-add-member-input" oninput="this.value = this.value.toUpperCase()" placeholder="VD: P123..." class="flex-1 px-3 py-2 rounded-xl border border-gray-300 font-bold text-xs uppercase outline-none">
+                    <button type="button" onclick="addNewMemberToGroup()" class="px-3 py-2 bg-amber-600 text-white font-bold rounded-xl text-xs hover:bg-amber-700 shadow-sm"><i class="fa-solid fa-user-plus"></i> Add</button>
+                </div>
+            </div>
+
+            <!-- 3. Danh sách thành viên (Ai cũng thấy, nhưng nút thao tác bên trong sẽ ẩn/hiện tùy quyền) -->
+            <div class="space-y-2 border-t border-gray-100 pt-3">
+                <label class="block font-bold text-gray-700 text-xs flex justify-between items-center">
+                    <span>Danh sách nhân sự:</span>
+                    <span id="group-member-count" class="text-[10px] text-amber-600 bg-amber-100 px-2 py-0.5 rounded-full font-black">0 thành viên</span>
+                </label>
+                <div id="group-active-members-list" class="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                    <!-- Javascript sẽ nhồi danh sách người vào đây -->
+                </div>
+            </div>
         </div>
 
-        <div class="space-y-2">
-            <label class="block font-bold text-gray-700 text-xs mb-1">Mã PIN bảo mật nhóm (Tùy chọn):</label>
-            <input type="text" id="setting-group-pin" maxlength="4" placeholder="Nhập 4 số hoặc để trống..." class="w-full px-3 py-3 rounded-xl border border-amber-200 bg-amber-50 font-bold text-center tracking-widest text-amber-950 outline-none">
-            <p class="text-[10px] text-gray-500 italic">Mọi thành viên cần nhập đúng mã PIN này mới có thể vào phòng chat.</p>
-        </div>
-
-        <div class="pt-2 mt-auto">
-            <button onclick="saveGroupSettings()" class="w-full py-3 bg-gradient-to-r from-amber-500 to-yellow-600 text-white font-black rounded-xl shadow-md hover:brightness-110 transition text-sm">
+        <!-- Nút lưu cài đặt (Chỉ Admin thấy) và Đóng (Ai cũng thấy) -->
+        <div class="pt-3 border-t border-gray-100 mt-auto shrink-0 flex gap-2">
+            <button id="btn-save-group-settings" onclick="saveGroupSettings()" class="hidden flex-1 py-2.5 bg-gradient-to-r from-amber-500 to-yellow-600 text-white font-black rounded-xl shadow-md hover:brightness-110 transition text-sm">
                 Lưu Cài Đặt
+            </button>
+            <button onclick="document.getElementById('group-settings-modal').classList.add('hidden')" class="flex-1 py-2.5 bg-gray-100 text-gray-700 font-black rounded-xl shadow-sm hover:bg-gray-200 transition text-sm">
+                Đóng
             </button>
         </div>
     </div>

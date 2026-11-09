@@ -2108,7 +2108,7 @@ function loadRealtimeMessages() {
                     }
 
                     scrollContainer.innerHTML += `
-                        <div class="max-w-[75%] p-3 shadow-sm text-xs ${bubbleClass}">
+                        <div class="max-w-[75%] p-3 shadow-sm text-sm leading-relaxed ${bubbleClass}">
                             ${contentHtml}
                         </div>
                     `;
@@ -3188,7 +3188,7 @@ function watchUserPointsForPayment(memberCode, oldPoints) {
                     }
 
                     scrollContainer.innerHTML += `
-                        <div class="max-w-[80%] p-2.5 text-xs ${bubbleClass}">
+                        <div class="max-w-[80%] p-3 text-sm leading-relaxed ${bubbleClass}">
                             ${senderLabel}
                             ${contentHtml}
                         </div>
@@ -3790,7 +3790,7 @@ function watchUserPointsForPayment(memberCode, oldPoints) {
             <!-- 3. Danh sách thành viên (Ai cũng thấy, nhưng nút thao tác bên trong sẽ ẩn/hiện tùy quyền) -->
             <div class="space-y-2 border-t border-gray-100 pt-3">
                 <label class="block font-bold text-gray-700 text-xs flex justify-between items-center">
-                    <span>Danh sách nhân sự:</span>
+                    <span>Thành viên:</span>
                     <span id="group-member-count" class="text-[10px] text-amber-600 bg-amber-100 px-2 py-0.5 rounded-full font-black">0 thành viên</span>
                 </label>
                 <div id="group-active-members-list" class="space-y-1.5 max-h-48 overflow-y-auto pr-1">

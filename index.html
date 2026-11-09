@@ -707,6 +707,15 @@
                     </div>
                 </div>
                 <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-2">
+                    <!-- Các nút Gọi 1-1 (Mặc định ẩn, chỉ bật lên khi ở phòng 1-1) -->
+                    <button id="btn-audio-call" onclick="initiateCall('audio')" class="hidden p-2 bg-emerald-50 text-emerald-600 rounded-xl font-bold hover:bg-emerald-100 transition shadow-sm" title="Cuộc gọi Thoại">
+                        <i class="fa-solid fa-phone text-base"></i>
+                    </button>
+                    <button id="btn-video-call" onclick="initiateCall('video')" class="hidden p-2 bg-emerald-50 text-emerald-600 rounded-xl font-bold hover:bg-emerald-100 transition shadow-sm" title="Cuộc gọi Video">
+                        <i class="fa-solid fa-video text-base"></i>
+                    </button>
+
                     <div id="chat-pin-widget-container"></div>
                     <div class="relative">
                         <button onclick="toggleChatOptionsMenu()" class="p-2 bg-rose-50 text-rose-700 rounded-xl font-bold hover:bg-rose-100 transition"><i class="fa-solid fa-ellipsis-vertical text-base"></i></button>
@@ -1800,6 +1809,10 @@ if(!uDoc.exists) {
 
     async function openChatList() {
         showSection('chat-list-section');
+        
+        // Kích hoạt "Ống nghe" chuông điện thoại WebRTC
+        listenForIncomingCalls();
+        
         const listContainer = document.getElementById('chat-conversations-container');
         listContainer.innerHTML = `<div class="text-center py-4 text-rose-600 font-bold"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Đang tải dữ liệu đám mây...</div>`;
 
@@ -1908,6 +1921,11 @@ if(!uDoc.exists) {
         
         showSection('chat-room-section');
         document.getElementById('point-floating-badge').classList.add('hidden'); // Ẩn thẻ Point
+        
+        // Bật hiển thị 2 nút gọi cho Chat 1-1
+        document.getElementById('btn-audio-call').classList.remove('hidden');
+        document.getElementById('btn-video-call').classList.remove('hidden');
+
         renderChatPinWidget();
 
        // Check PIN và khóa lập tức
@@ -3107,6 +3125,10 @@ function watchUserPointsForPayment(memberCode, oldPoints) {
         showSection('chat-room-section');
         document.getElementById('point-floating-badge').classList.add('hidden'); // Ẩn thẻ Point
         
+        // Giấu 2 nút gọi đi khi ở trong Nhóm
+        document.getElementById('btn-audio-call').classList.add('hidden');
+        document.getElementById('btn-video-call').classList.add('hidden');
+        
         // [MÃ PIN CỤC BỘ]: Kích hoạt hiển thị nút Cài PIN và kiểm tra khóa rèm cho Nhóm
         renderChatPinWidget();
         
@@ -3555,6 +3577,278 @@ function watchUserPointsForPayment(memberCode, oldPoints) {
             return false;
         }
     };
+// ==========================================
+// HỆ THỐNG WEBRTC: GỌI THOẠI & VIDEO 1-1
+// ==========================================
+let localStream = null;
+let remoteStream = null;
+let peerConnection = null;
+let activeCallRef = null;
+let callUnsubscribe = null;
+let isCallAudioOnly = false;
+let callTimerInterval = null;
+let callSeconds = 0;
+
+// Sử dụng máy chủ trung chuyển STUN miễn phí của Google
+const pcConfig = {
+    iceServers: [
+        { urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'] }
+    ]
+};
+
+// 1. NGƯỜI GỌI: KHỞI TẠO CUỘC GỌI
+async function initiateCall(type) {
+    if (!activeChatPartnerCode) return;
+    isCallAudioOnly = (type === 'audio');
+    
+    try {
+        // Xin quyền Camera/Micro
+        localStream = await navigator.mediaDevices.getUserMedia({
+            video: !isCallAudioOnly,
+            audio: true
+        });
+        
+        setupCallScreenUI(true); // Mở giao diện gọi
+        
+        peerConnection = new RTCPeerConnection(pcConfig);
+        localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+        
+        remoteStream = new MediaStream();
+        document.getElementById('remote-video').srcObject = remoteStream;
+        peerConnection.ontrack = event => {
+            event.streams[0].getTracks().forEach(track => remoteStream.addTrack(track));
+            document.getElementById('remote-video').classList.remove('hidden');
+            document.getElementById('audio-only-avatar').classList.add('hidden');
+        };
+
+        const callDoc = db.collection('calls').doc();
+        activeCallRef = callDoc;
+        
+        peerConnection.onicecandidate = event => {
+            if(event.candidate) {
+                callDoc.collection('callerCandidates').add(event.candidate.toJSON());
+            }
+        };
+
+        const offerDescription = await peerConnection.createOffer();
+        await peerConnection.setLocalDescription(offerDescription);
+
+        await callDoc.set({
+            callerCode: currentMemberCode,
+            receiverCode: activeChatPartnerCode,
+            type: type,
+            status: 'ringing',
+            offer: { type: offerDescription.type, sdp: offerDescription.sdp },
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        // Lắng nghe người kia nhấc máy hoặc từ chối
+        callUnsubscribe = callDoc.onSnapshot(snapshot => {
+            const data = snapshot.data();
+            if (!data) return;
+            
+            if (data.status === 'answered' && !peerConnection.currentRemoteDescription) {
+                const answerDescription = new RTCSessionDescription(data.answer);
+                peerConnection.setRemoteDescription(answerDescription);
+                startCallTimer();
+                document.getElementById('call-status-overlay').classList.add('hidden');
+            }
+            if (data.status === 'rejected' || data.status === 'ended') {
+                if (data.status === 'rejected') alert("Người dùng đang bận hoặc đã từ chối cuộc gọi.");
+                cleanupCall();
+            }
+        });
+
+        callDoc.collection('receiverCandidates').onSnapshot(snapshot => {
+            snapshot.docChanges().forEach(change => {
+                if (change.type === 'added') {
+                    const candidate = new RTCIceCandidate(change.doc.data());
+                    peerConnection.addIceCandidate(candidate);
+                }
+            });
+        });
+
+    } catch(e) {
+        alert("Lỗi truy cập Camera/Micro. Vui lòng cấp quyền cho trình duyệt!");
+        cleanupCall();
+    }
+}
+
+// 2. NGƯỜI NGHE: LẮNG NGHE CHUÔNG ĐIỆN THOẠI TỚI
+let incomingCallListener = null;
+let incomingCallDocId = null;
+
+function listenForIncomingCalls() {
+    if (incomingCallListener) incomingCallListener(); // Xóa phiên nghe cũ
+    if (!currentMemberCode) return;
+    
+    incomingCallListener = db.collection('calls')
+        .where('receiverCode', '==', currentMemberCode)
+        .where('status', '==', 'ringing')
+        .onSnapshot(snapshot => {
+            snapshot.docChanges().forEach(change => {
+                if (change.type === 'added') {
+                    const callData = change.doc.data();
+                    incomingCallDocId = change.doc.id;
+                    isCallAudioOnly = (callData.type === 'audio');
+                    
+                    document.getElementById('caller-name-display').innerText = callData.callerCode;
+                    document.getElementById('call-type-display').innerText = isCallAudioOnly ? "Đang gọi Thoại cho bạn..." : "Đang gọi Video cho bạn...";
+                    document.getElementById('call-ringing-modal').classList.remove('hidden');
+                    
+                    activeCallRef = db.collection('calls').doc(incomingCallDocId);
+                    callUnsubscribe = activeCallRef.onSnapshot(docSnap => {
+                        if(docSnap.exists && docSnap.data().status === 'ended') {
+                            document.getElementById('call-ringing-modal').classList.add('hidden');
+                            cleanupCall();
+                        }
+                    });
+                }
+            });
+        });
+}
+
+// 3. NGƯỜI NGHE: ĐỒNG Ý NHẤC MÁY
+async function acceptCall() {
+    document.getElementById('call-ringing-modal').classList.add('hidden');
+    if (!incomingCallDocId) return;
+    activeCallRef = db.collection('calls').doc(incomingCallDocId);
+    
+    try {
+        localStream = await navigator.mediaDevices.getUserMedia({
+            video: !isCallAudioOnly,
+            audio: true
+        });
+        
+        setupCallScreenUI(false);
+        document.getElementById('call-status-overlay').classList.add('hidden');
+        
+        peerConnection = new RTCPeerConnection(pcConfig);
+        localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+        
+        remoteStream = new MediaStream();
+        document.getElementById('remote-video').srcObject = remoteStream;
+        peerConnection.ontrack = event => {
+            event.streams[0].getTracks().forEach(track => remoteStream.addTrack(track));
+            document.getElementById('remote-video').classList.remove('hidden');
+            document.getElementById('audio-only-avatar').classList.add('hidden');
+        };
+
+        peerConnection.onicecandidate = event => {
+            if(event.candidate) {
+                activeCallRef.collection('receiverCandidates').add(event.candidate.toJSON());
+            }
+        };
+
+        const callDoc = await activeCallRef.get();
+        const callData = callDoc.data();
+        
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(callData.offer));
+        const answerDescription = await peerConnection.createAnswer();
+        await peerConnection.setLocalDescription(answerDescription);
+        
+        await activeCallRef.update({ 
+            status: 'answered', 
+            answer: { type: answerDescription.type, sdp: answerDescription.sdp } 
+        });
+        
+        startCallTimer();
+        
+        activeCallRef.collection('callerCandidates').onSnapshot(snapshot => {
+            snapshot.docChanges().forEach(change => {
+                if (change.type === 'added') {
+                    peerConnection.addIceCandidate(new RTCIceCandidate(change.doc.data()));
+                }
+            });
+        });
+
+        callUnsubscribe = activeCallRef.onSnapshot(docSnap => {
+            if (docSnap.exists && docSnap.data().status === 'ended') cleanupCall();
+        });
+
+    } catch(e) {
+        alert("Lỗi truy cập Camera/Micro!");
+        cleanupCall();
+    }
+}
+
+// 4. CÁC HÀM TIỆN ÍCH (TỪ CHỐI, CÚP MÁY, DỌN DẸP, TẮT MIC/CAM)
+async function rejectCall() {
+    document.getElementById('call-ringing-modal').classList.add('hidden');
+    if (activeCallRef) await activeCallRef.update({ status: 'rejected' });
+    cleanupCall();
+}
+
+async function endCall() {
+    if (activeCallRef) await activeCallRef.update({ status: 'ended' }).catch(()=>{});
+    cleanupCall();
+}
+
+function cleanupCall() {
+    if (peerConnection) { peerConnection.close(); peerConnection = null; }
+    if (localStream) { localStream.getTracks().forEach(track => track.stop()); localStream = null; }
+    if (callUnsubscribe) { callUnsubscribe(); callUnsubscribe = null; }
+    clearInterval(callTimerInterval);
+    document.getElementById('active-call-screen').classList.add('hidden');
+    document.getElementById('call-ringing-modal').classList.add('hidden');
+    document.getElementById('local-video').srcObject = null;
+    document.getElementById('remote-video').srcObject = null;
+    activeCallRef = null;
+    incomingCallDocId = null;
+}
+
+function setupCallScreenUI(isCaller) {
+    document.getElementById('active-call-screen').classList.remove('hidden');
+    document.getElementById('active-call-screen').classList.add('flex');
+    const localVideo = document.getElementById('local-video');
+    localVideo.srcObject = localStream;
+    
+    if (isCallAudioOnly) {
+        localVideo.classList.add('hidden');
+        document.getElementById('btn-toggle-cam').classList.add('opacity-50', 'pointer-events-none');
+    } else {
+        localVideo.classList.remove('hidden');
+        document.getElementById('btn-toggle-cam').classList.remove('opacity-50', 'pointer-events-none');
+    }
+    
+    document.getElementById('call-status-overlay').classList.remove('hidden');
+    document.getElementById('call-status-text').innerText = isCaller ? "Đang gọi..." : "Đang kết nối...";
+}
+
+function startCallTimer() {
+    callSeconds = 0;
+    const timeDisplay = document.getElementById('active-call-duration');
+    timeDisplay.innerText = "00:00";
+    callTimerInterval = setInterval(() => {
+        callSeconds++;
+        const mins = String(Math.floor(callSeconds / 60)).padStart(2, '0');
+        const secs = String(callSeconds % 60).padStart(2, '0');
+        timeDisplay.innerText = `${mins}:${secs}`;
+    }, 1000);
+}
+
+let isMicMuted = false;
+function toggleMic() {
+    if (!localStream) return;
+    isMicMuted = !isMicMuted;
+    localStream.getAudioTracks()[0].enabled = !isMicMuted;
+    const btn = document.getElementById('btn-toggle-mic');
+    btn.innerHTML = isMicMuted ? '<i class="fa-solid fa-microphone-slash"></i>' : '<i class="fa-solid fa-microphone"></i>';
+    btn.classList.toggle('bg-rose-600', isMicMuted);
+    btn.classList.toggle('bg-gray-700', !isMicMuted);
+}
+
+let isCamMuted = false;
+function toggleCam() {
+    if (!localStream || isCallAudioOnly) return;
+    isCamMuted = !isCamMuted;
+    localStream.getVideoTracks()[0].enabled = !isCamMuted;
+    const btn = document.getElementById('btn-toggle-cam');
+    btn.innerHTML = isCamMuted ? '<i class="fa-solid fa-video-slash"></i>' : '<i class="fa-solid fa-video"></i>';
+    btn.classList.toggle('bg-rose-600', isCamMuted);
+    btn.classList.toggle('bg-gray-700', !isCamMuted);
+    document.getElementById('local-video').style.opacity = isCamMuted ? "0" : "1";
+}
 </script>
 
 <!-- MODALS THÊM: PARTNER PROFILE, PIN SETUP, INFO, ELITE CHECKOUT, CHECKOUT PANEL -->
@@ -3808,6 +4102,73 @@ function watchUserPointsForPayment(memberCode, oldPoints) {
                 Đóng
             </button>
         </div>
+    </div>
+</div>
+<!-- ========================================== -->
+<!-- GIAO DIỆN CUỘC GỌI WEBRTC 1-1 -->
+<!-- ========================================== -->
+
+<!-- 1. POPUP ĐỔ CHUÔNG (INCOMING CALL) -->
+<div id="call-ringing-modal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-[999] hidden flex items-center justify-center p-4">
+    <div class="bg-white p-6 rounded-3xl shadow-2xl max-w-sm w-full text-center flex flex-col items-center border border-gray-100">
+        <!-- Hiệu ứng Avatar rung (Ringing effect) -->
+        <div class="relative w-24 h-24 mb-4 flex items-center justify-center">
+            <div class="absolute inset-0 bg-amber-400 rounded-full animate-ping opacity-60"></div>
+            <div class="relative w-20 h-20 bg-amber-100 rounded-full border-4 border-white shadow-md flex items-center justify-center text-4xl text-amber-500 z-10">
+                <i class="fa-solid fa-user"></i>
+            </div>
+        </div>
+        
+        <h3 id="caller-name-display" class="font-black text-xl text-gray-900 mb-1">Ai đó</h3>
+        <p id="call-type-display" class="text-sm font-bold text-gray-500 mb-8">Đang gọi Video cho bạn...</p>
+        
+        <div class="flex gap-8 w-full justify-center">
+            <button onclick="rejectCall()" class="w-14 h-14 rounded-full bg-rose-100 text-rose-600 shadow-sm hover:bg-rose-200 transition flex items-center justify-center text-2xl">
+                <i class="fa-solid fa-phone-slash"></i>
+            </button>
+            <button id="btn-accept-call" onclick="acceptCall()" class="w-14 h-14 rounded-full bg-emerald-500 text-white shadow-lg animate-bounce hover:bg-emerald-600 transition flex items-center justify-center text-2xl">
+                <i class="fa-solid fa-phone"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- 2. MÀN HÌNH CUỘC GỌI TRỰC TIẾP (ACTIVE CALL) -->
+<div id="active-call-screen" class="fixed inset-0 bg-gray-950 z-[1000] hidden flex-col">
+    <!-- Khu vực hiển thị Video -->
+    <div class="relative flex-1 bg-black overflow-hidden flex items-center justify-center">
+        <!-- Khung Avatar ẩn (Sẽ hiện nếu là Gọi Thoại hoặc bị tắt Cam) -->
+        <div id="audio-only-avatar" class="absolute inset-0 flex flex-col items-center justify-center bg-gray-900 z-0">
+             <div class="w-32 h-32 bg-gray-800 rounded-full flex items-center justify-center text-6xl text-gray-500 shadow-xl mb-4">
+                 <i class="fa-solid fa-user"></i>
+             </div>
+             <p id="active-call-partner-name" class="text-white font-black text-xl">Thành viên</p>
+             <p id="active-call-duration" class="text-emerald-400 font-bold mt-2">00:00</p>
+        </div>
+
+        <!-- Video của đối tác (Màn hình lớn) -->
+        <video id="remote-video" class="w-full h-full object-cover z-10 hidden" autoplay playsinline></video>
+        
+        <!-- Video của bản thân (Góc nhỏ) -->
+        <video id="local-video" class="absolute top-4 right-4 w-28 h-40 object-cover bg-gray-800 rounded-xl border-2 border-gray-600 shadow-xl z-20 hidden" autoplay playsinline muted></video>
+
+        <!-- Trạng thái kết nối (Đang gọi, Đang kết nối...) -->
+        <div id="call-status-overlay" class="absolute inset-0 flex items-center justify-center bg-black/60 z-30">
+            <p id="call-status-text" class="text-white font-bold text-lg animate-pulse">Đang kết nối...</p>
+        </div>
+    </div>
+
+    <!-- Thanh điều khiển cuộc gọi dưới cùng -->
+    <div class="h-24 bg-gray-900 shrink-0 flex items-center justify-center gap-8 px-4" style="padding-bottom: env(safe-area-inset-bottom);">
+        <button id="btn-toggle-mic" onclick="toggleMic()" class="w-12 h-12 rounded-full bg-gray-700 text-white hover:bg-gray-600 transition flex items-center justify-center text-xl">
+            <i class="fa-solid fa-microphone"></i>
+        </button>
+        <button onclick="endCall()" class="w-16 h-16 rounded-full bg-rose-600 text-white shadow-[0_0_15px_rgba(225,29,72,0.4)] hover:bg-rose-700 transition flex items-center justify-center text-3xl">
+            <i class="fa-solid fa-phone-slash"></i>
+        </button>
+        <button id="btn-toggle-cam" onclick="toggleCam()" class="w-12 h-12 rounded-full bg-gray-700 text-white hover:bg-gray-600 transition flex items-center justify-center text-xl">
+            <i class="fa-solid fa-video"></i>
+        </button>
     </div>
 </div>
 <!-- FOOTER GÃY GỌN (ĐÃ GỎI BỎ EMAIL, LIÊN HỆ QUẢN TRỊ & ỦY QUYỀN) -->

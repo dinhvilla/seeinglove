@@ -1937,7 +1937,9 @@ if(!uDoc.exists) {
 
     function renderChatPinWidget() {
         const container = document.getElementById('chat-pin-widget-container');
-        const pinKey = `chat_pin_${currentMemberCode}_${activeChatPartnerCode}`;
+        // Xác định ID phòng là Nhóm hay 1-1 để lấy đúng mã PIN cục bộ
+        const targetId = activeGroupId ? activeGroupId : activeChatPartnerCode;
+        const pinKey = `chat_pin_${currentMemberCode}_${targetId}`;
         const savedPin = localStorage.getItem(pinKey);
 
         if (savedPin) {
@@ -1953,7 +1955,8 @@ if(!uDoc.exists) {
 
     function resetChatActivityTimer() {
         if (chatActivityTimer) clearTimeout(chatActivityTimer);
-        const pinKey = `chat_pin_${currentMemberCode}_${activeChatPartnerCode}`;
+        const targetId = activeGroupId ? activeGroupId : activeChatPartnerCode;
+        const pinKey = `chat_pin_${currentMemberCode}_${targetId}`;
         const savedPin = localStorage.getItem(pinKey);
 
         if (savedPin) {
@@ -1965,73 +1968,49 @@ if(!uDoc.exists) {
 
     async function verifyChatUnlockPin() {
         const enteredPin = document.getElementById('unlock-pin-input').value.trim();
+        const targetId = activeGroupId ? activeGroupId : activeChatPartnerCode;
+        
+        if (!targetId) return;
 
-        // ------------------------------------------
-        // TRƯỜNG HỢP 1: ĐANG Ở PHÒNG CHAT NHÓM
-        // ------------------------------------------
-        if (activeGroupId) {
-            const realGroupPin = activeGroupFullData.groupPin;
-            let failPinKey = `fail_pin_group_${currentMemberCode}_${activeGroupId}`;
-            let failCount = parseInt(localStorage.getItem(failPinKey) || 0);
+        const pinKey = `chat_pin_${currentMemberCode}_${targetId}`;
+        const savedPin = localStorage.getItem(pinKey);
+        let failPinKey = `fail_pin_count_${currentMemberCode}_${targetId}`;
+        let failCount = parseInt(localStorage.getItem(failPinKey) || 0);
 
-            if (enteredPin === realGroupPin) {
-                // Mở khóa thành công
-                localStorage.setItem(failPinKey, '0');
-                const pinSessionKey = `group_pin_${currentMemberCode}_${activeGroupId}`;
-                localStorage.setItem(pinSessionKey, realGroupPin); // Lưu vé thông hành lên máy cá nhân
-                document.getElementById('chat-pin-lock-overlay').classList.add('hidden');
-                document.getElementById('unlock-pin-input').value = "";
-            } else {
-                // Sai mã PIN Nhóm
-                failCount++;
-                localStorage.setItem(failPinKey, failCount);
-                if (failCount >= 6) {
-                    alert("🚨 Bạn đã nhập sai mã PIN Nhóm 6 lần! Bạn đã bị hệ thống chặn truy cập tạm thời vào nhóm này.");
-                    localStorage.setItem(failPinKey, '0');
-                    document.getElementById('chat-pin-lock-overlay').classList.add('hidden');
-                    openChatList(); // Đẩy văng ra ngoài hộp thư
-                } else {
-                    alert(`❌ Mã PIN Nhóm không chính xác! (Sai ${failCount}/6 lần)`);
-                    document.getElementById('unlock-pin-input').value = "";
-                }
-            }
-        }
-        // ------------------------------------------
-        // TRƯỜNG HỢP 2: ĐANG Ở PHÒNG CHAT CÁ NHÂN (1-1)
-        // ------------------------------------------
-        else if (activeChatPartnerCode) {
-            const pinKey = `chat_pin_${currentMemberCode}_${activeChatPartnerCode}`;
-            const savedPin = localStorage.getItem(pinKey);
-            let failPinKey = `fail_pin_count_${currentMemberCode}_${activeChatPartnerCode}`;
-            let failCount = parseInt(localStorage.getItem(failPinKey) || 0);
+        if (enteredPin === savedPin) {
+            localStorage.setItem(failPinKey, '0'); // Reset đếm sai
+            document.getElementById('chat-pin-lock-overlay').classList.add('hidden');
+            document.getElementById('unlock-pin-input').value = "";
+            resetChatActivityTimer();
+        } else {
+            failCount++;
+            localStorage.setItem(failPinKey, failCount);
 
-            if (enteredPin === savedPin) {
-                localStorage.setItem(failPinKey, '0');
-                document.getElementById('chat-pin-lock-overlay').classList.add('hidden');
-                document.getElementById('unlock-pin-input').value = "";
-                resetChatActivityTimer();
-            } else {
-                failCount++;
-                localStorage.setItem(failPinKey, failCount);
-                if (failCount >= 6) {
-                    alert("🚨 CẢNH BÁO: Bạn đã nhập sai mã PIN 6 lần liên tiếp! Cuộc trò chuyện 1-1 sẽ bị tự động xóa vĩnh viễn.");
-                    localStorage.removeItem(pinKey);
-                    localStorage.removeItem(failPinKey);
-                    try {
-                        const chatId = getCoreMatchId(currentMemberCode, activeChatPartnerCode);
-                        const matchId = getCoreMatchId(currentMemberCode, activeChatPartnerCode);
+            if (failCount >= 6) {
+                alert("🚨 CẢNH BÁO: Bạn đã nhập sai mã PIN 6 lần liên tiếp! Cuộc trò chuyện này sẽ bị vô hiệu hóa trên máy để bảo mật.");
+                localStorage.removeItem(pinKey);
+                localStorage.removeItem(failPinKey);
+                
+                try {
+                    if (activeGroupId) {
+                        // Nếu là Nhóm, tạm đuổi văng ra hộp thư
+                    } else {
+                        // Nếu là 1-1, tự hủy luôn phòng chat
+                        const chatId = getCoreMatchId(currentMemberCode, targetId);
+                        const matchId = getCoreMatchId(currentMemberCode, targetId);
                         const messagesSnap = await db.collection("chats").doc(chatId).collection("messages").get();
                         const batch = db.batch();
                         messagesSnap.forEach(doc => { batch.delete(doc.ref); });
                         await batch.commit();
                         await db.collection("matches").doc(matchId).delete();
-                    } catch(e) {}
-                    document.getElementById('chat-pin-lock-overlay').classList.add('hidden');
-                    openChatList();
-                } else {
-                    alert(`❌ Mã PIN 1-1 không chính xác! (Sai ${failCount}/6 lần)`);
-                    document.getElementById('unlock-pin-input').value = "";
-                }
+                    }
+                } catch(e) {}
+
+                document.getElementById('chat-pin-lock-overlay').classList.add('hidden');
+                openChatList(); // Đẩy ra ngoài Hộp thư
+            } else {
+                alert(`❌ Mã PIN không chính xác! (Sai ${failCount}/6 lần)`);
+                document.getElementById('unlock-pin-input').value = "";
             }
         }
     }
@@ -2051,7 +2030,8 @@ if(!uDoc.exists) {
         if (pin1.length !== 4) { alert("Mã PIN phải bao gồm đúng 4 chữ số!"); return; }
         if (pin1 !== pin2) { alert("Mã PIN xác nhận không khớp!"); return; }
 
-        const pinKey = `chat_pin_${currentMemberCode}_${activeChatPartnerCode}`;
+        const targetId = activeGroupId ? activeGroupId : activeChatPartnerCode;
+        const pinKey = `chat_pin_${currentMemberCode}_${targetId}`;
         localStorage.setItem(pinKey, pin1);
         alert("✅ Đã cài đặt mã PIN bảo mật thành công!");
         closeChatPinSetupModal();
@@ -3127,34 +3107,27 @@ function watchUserPointsForPayment(memberCode, oldPoints) {
         showSection('chat-room-section');
         document.getElementById('point-floating-badge').classList.add('hidden'); // Ẩn thẻ Point
         
-        // Ẩn nút cài đặt mã PIN 1-1 vì Nhóm dùng cơ chế bảo mật khác (Giai đoạn 3 sẽ làm bảng Điều khiển)
-        document.getElementById('chat-pin-widget-container').innerHTML = ''; 
-
-        // [CƠ CHẾ BẢO MẬT NHÓM]: Đóng/Mở rèm bảo vệ tùy thuộc vào việc Nhóm có cài PIN không
-        if (activeGroupFullData.groupPin) {
-            const pinSessionKey = `group_pin_${currentMemberCode}_${activeGroupId}`;
-            if (localStorage.getItem(pinSessionKey) === activeGroupFullData.groupPin) {
-                // Đã từng mở khóa đúng PIN của nhóm này trên máy này -> Cho qua
-                document.getElementById('chat-pin-lock-overlay').classList.add('hidden');
-            } else {
-                // Chưa nhập PIN -> Sập rèm xuống khóa lại
-                document.getElementById('chat-pin-lock-overlay').classList.remove('hidden');
-            }
+        // [MÃ PIN CỤC BỘ]: Kích hoạt hiển thị nút Cài PIN và kiểm tra khóa rèm cho Nhóm
+        renderChatPinWidget();
+        
+        const pinKey = `chat_pin_${currentMemberCode}_${activeGroupId}`;
+        if (localStorage.getItem(pinKey)) {
+            document.getElementById('chat-pin-lock-overlay').classList.remove('hidden');
         } else {
-            // Nhóm không cài PIN -> Đảm bảo rèm được kéo lên
             document.getElementById('chat-pin-lock-overlay').classList.add('hidden');
         }
         document.getElementById('unlock-pin-input').value = "";
+        resetChatActivityTimer();
 
         // 1. Biến hình Menu 3 chấm thành Menu Quản trị Nhóm
         const dropMenu = document.getElementById('chat-options-dropdown');
         if (activeGroupFullData.adminCode === currentMemberCode) {
             dropMenu.innerHTML = `
-                <button onclick="openGroupSettingsModal()" class="w-full text-left px-4 py-2.5 hover:bg-rose-50 text-amber-700 font-bold flex items-center gap-2"><i class="fa-solid fa-gear"></i> Cài đặt Nhóm</button>
-                <button onclick="leaveGroupChat()" class="w-full text-left px-4 py-2.5 hover:bg-rose-50 text-red-600 font-bold flex items-center gap-2"><i class="fa-solid fa-right-from-bracket"></i> Rời nhóm</button>
+                <button onclick="event.stopPropagation(); openGroupSettingsModal();" class="w-full text-left px-4 py-2.5 hover:bg-rose-50 text-amber-700 font-bold flex items-center gap-2"><i class="fa-solid fa-gear"></i> Cài đặt Nhóm</button>
+                <button onclick="event.stopPropagation(); leaveGroupChat();" class="w-full text-left px-4 py-2.5 hover:bg-rose-50 text-red-600 font-bold flex items-center gap-2"><i class="fa-solid fa-right-from-bracket"></i> Rời nhóm</button>
             `;
         } else {
-            dropMenu.innerHTML = `<button onclick="leaveGroupChat()" class="w-full text-left px-4 py-2.5 hover:bg-rose-50 text-red-600 font-bold flex items-center gap-2"><i class="fa-solid fa-right-from-bracket"></i> Rời nhóm</button>`;
+            dropMenu.innerHTML = `<button onclick="event.stopPropagation(); leaveGroupChat();" class="w-full text-left px-4 py-2.5 hover:bg-rose-50 text-red-600 font-bold flex items-center gap-2"><i class="fa-solid fa-right-from-bracket"></i> Rời nhóm</button>`;
         }
 
         // 2. Kích hoạt cơ chế Làm mờ ô chat nếu Admin cấm ngôn
@@ -3610,6 +3583,12 @@ function watchUserPointsForPayment(memberCode, oldPoints) {
                 <option value="free">Tự do (Tất cả thành viên đều được nhắn)</option>
                 <option value="admin_only">Chỉ Quản trị (Chỉ Admin được nhắn)</option>
             </select>
+        </div>
+
+        <div class="space-y-2">
+            <label class="block font-bold text-gray-700 text-xs mb-1">Mã PIN bảo mật nhóm (Tùy chọn):</label>
+            <input type="text" id="setting-group-pin" maxlength="4" placeholder="Nhập 4 số hoặc để trống..." class="w-full px-3 py-3 rounded-xl border border-amber-200 bg-amber-50 font-bold text-center tracking-widest text-amber-950 outline-none">
+            <p class="text-[10px] text-gray-500 italic">Mọi thành viên cần nhập đúng mã PIN này mới có thể vào phòng chat.</p>
         </div>
 
         <div class="pt-2 mt-auto">

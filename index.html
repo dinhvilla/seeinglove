@@ -3090,6 +3090,10 @@ function watchUserPointsForPayment(memberCode, oldPoints) {
         // Ẩn nút cài đặt mã PIN 1-1 vì Nhóm dùng cơ chế bảo mật khác (Giai đoạn 3 sẽ làm bảng Điều khiển)
         document.getElementById('chat-pin-widget-container').innerHTML = ''; 
 
+        // [VÁ LỖI "KẸT RÈM"]: Bắt buộc ẩn màn hình đòi mã PIN khi vào Nhóm, và xóa mã PIN gõ dở (nếu có)
+        document.getElementById('chat-pin-lock-overlay').classList.add('hidden');
+        document.getElementById('unlock-pin-input').value = "";
+
         // Load tin nhắn theo Group ID
         loadGroupRealtimeMessages();
     }

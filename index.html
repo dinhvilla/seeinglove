@@ -154,17 +154,17 @@
     <span id="badge-notice-text" class="hidden text-[10px] text-rose-300 font-bold leading-none pt-0.5 whitespace-nowrap">[Cần nạp 2 points]</span>
 </div>
 
-<nav id="bottom-nav" class="hidden fixed bottom-0 left-0 right-0 w-full bg-white/95 backdrop-blur-xl border-t border-gray-200 z-50 shadow-[0_-5px_20px_rgba(0,0,0,0.1)]" style="padding-bottom: max(env(safe-area-inset-bottom), 12px);">
-    <div class="max-w-[600px] mx-auto px-6 pt-2.5 pb-1 flex justify-around items-center text-sm font-bold text-gray-400">
-        <button onclick="showSection('search-section')" class="flex flex-col items-center gap-1 text-rose-600 hover:text-rose-700 transition">
-            <i class="fa-solid fa-compass text-2xl mb-0.5"></i> <span class="text-[11px] uppercase tracking-wide">Khám phá</span>
+<nav id="bottom-nav" class="hidden fixed bottom-0 left-0 right-0 w-full bg-white/95 backdrop-blur-xl border-t border-gray-200 z-40 shadow-[0_-5px_20px_rgba(0,0,0,0.1)]" style="padding-bottom: max(env(safe-area-inset-bottom), 12px);">
+    <div class="max-w-[600px] mx-auto px-6 py-2.5 flex justify-around items-center text-gray-400">
+        <button onclick="showSection('search-section')" class="p-2 text-rose-600 hover:text-rose-700 transition">
+            <i class="fa-solid fa-compass text-3xl"></i>
         </button>
-        <button onclick="openChatList()" class="flex flex-col items-center gap-1 hover:text-rose-600 transition relative">
-            <i class="fa-solid fa-comments text-2xl mb-0.5"></i> <span class="text-[11px] uppercase tracking-wide">Trò chuyện</span>
-            <span id="chat-badge-dot" class="hidden absolute -top-1 -right-1 w-3 h-3 border-2 border-white bg-rose-600 rounded-full shadow-sm"></span>
+        <button onclick="openChatList()" class="p-2 hover:text-rose-600 transition relative">
+            <i class="fa-solid fa-comments text-3xl"></i>
+            <span id="chat-badge-dot" class="hidden absolute top-1.5 -right-0.5 w-3.5 h-3.5 border-2 border-white bg-rose-600 rounded-full shadow-sm"></span>
         </button>
-        <button onclick="showSection('profile-section')" class="flex flex-col items-center gap-1 hover:text-rose-600 transition">
-            <i class="fa-solid fa-user-gear text-2xl mb-0.5"></i> <span class="text-[11px] uppercase tracking-wide">Hồ sơ</span>
+        <button onclick="showSection('profile-section')" class="p-2 hover:text-rose-600 transition">
+            <i class="fa-solid fa-user-gear text-3xl"></i>
         </button>
     </div>
 </nav>

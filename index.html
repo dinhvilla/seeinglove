@@ -3601,14 +3601,14 @@ async function initiateCall(type) {
     isCallAudioOnly = (type === 'audio');
     
     try {
-        // Cấu hình tối ưu cho Mobile (đặc biệt iOS Safari)
-        const constraints = {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            throw new Error("Trình duyệt này chặn tính năng Gọi điện (Khuyên dùng Safari/Chrome gốc).");
+        }
+
+        localStream = await navigator.mediaDevices.getUserMedia({
             audio: true,
-            video: isCallAudioOnly ? false : { facingMode: "user" } // Ưu tiên camera trước
-        };
-        
-        // Xin quyền Camera/Micro
-        localStream = await navigator.mediaDevices.getUserMedia(constraints);
+            video: isCallAudioOnly ? false : true // Đưa về true cơ bản nhất cho Safari dễ nhận
+        });
         
         setupCallScreenUI(true); // Mở giao diện gọi
         
@@ -3644,7 +3644,6 @@ async function initiateCall(type) {
             timestamp: firebase.firestore.FieldValue.serverTimestamp()
         });
 
-        // Lắng nghe người kia nhấc máy hoặc từ chối
         callUnsubscribe = callDoc.onSnapshot(snapshot => {
             const data = snapshot.data();
             if (!data) return;
@@ -3671,7 +3670,7 @@ async function initiateCall(type) {
         });
 
     } catch(e) {
-        alert("Lỗi truy cập Camera/Micro. Vui lòng cấp quyền cho trình duyệt!");
+        alert("⚠️ Lỗi thiết bị: " + (e.name || "") + " - " + e.message + "\n\nHƯỚNG DẪN IPHONE:\n1. KHÔNG mở link từ Zalo/Messenger (Bị chặn camera).\n2. Copy link mở bằng Safari gốc.\n3. Nhớ F5 tải lại trang.");
         cleanupCall();
     }
 }
@@ -3717,11 +3716,14 @@ async function acceptCall() {
     activeCallRef = db.collection('calls').doc(incomingCallDocId);
     
     try {
-        const constraints = {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            throw new Error("Trình duyệt này chặn tính năng Gọi điện.");
+        }
+
+        localStream = await navigator.mediaDevices.getUserMedia({
             audio: true,
-            video: isCallAudioOnly ? false : { facingMode: "user" }
-        };
-        localStream = await navigator.mediaDevices.getUserMedia(constraints);
+            video: isCallAudioOnly ? false : true
+        });
         
         setupCallScreenUI(false);
         document.getElementById('call-status-overlay').classList.add('hidden');
@@ -3770,11 +3772,10 @@ async function acceptCall() {
         });
 
     } catch(e) {
-        alert("Lỗi truy cập Camera/Micro!");
+        alert("⚠️ Lỗi thiết bị: " + (e.name || "") + " - " + e.message + "\n\nHƯỚNG DẪN IPHONE:\n1. KHÔNG mở link từ Zalo/Messenger (Bị chặn camera).\n2. Copy link mở bằng Safari gốc.\n3. Nhớ F5 tải lại trang.");
         cleanupCall();
     }
 }
-
 // 4. CÁC HÀM TIỆN ÍCH (TỪ CHỐI, CÚP MÁY, DỌN DẸP, TẮT MIC/CAM)
 async function rejectCall() {
     document.getElementById('call-ringing-modal').classList.add('hidden');

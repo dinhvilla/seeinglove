@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Seeing Love - Kết Nối Toàn Cầu</title>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><path fill='%23e11d48' d='M47.6 300.4L228.3 469.1c7.5 7 17.4 10.9 27.7 10.9s20.2-3.9 27.7-10.9L464.4 300.4c30.4-28.3 47.6-68 47.6-109.5v-5.8c0-69.9-50.5-129.5-119.4-141-34.7-5.8-70.6 2.5-98.7 22.9L256 94.7l-37.9-27.7c-28.1-20.4-64-28.7-98.7-22.9C50.5 55.6 0 115.2 0 185.1v5.8c0 41.5 17.2 81.2 47.6 109.5z'/></svg>">
 
@@ -27,8 +27,8 @@
             color: #374151;
             margin: 0;
             padding: 0;
-            /* Khóa chặt màn hình không cho cuộn tổng thể (như App thật) */
-            height: 100vh;
+            /* Dùng 100dvh thay cho 100vh để iPhone tự động trừ hao thanh địa chỉ Safari, chống tràn đáy */
+            height: 100dvh; 
             width: 100vw;
             overflow: hidden; 
             font-size: 16px; /* Tăng size chữ mặc định lên 16px cho dễ đọc */
@@ -683,9 +683,9 @@
         </div>
     </section>
 
-    <!-- KHUNG TRÒ CHUYỆN THU LÙN ~2CM (55vh) & BẢO MẬT PIN LẬP TỨC KHI RỜI ĐI -->
+    <!-- KHUNG TRÒ CHUYỆN THU LÙN ~2/3 MÀN HÌNH (55vh) -->
     <section id="chat-room-section" class="hidden space-y-2">
-        <div class="bg-white/95 p-3 rounded-3xl shadow-xl border border-rose-200 flex flex-col relative" style="height: 75vh;">
+        <div class="bg-white/95 p-3 rounded-3xl shadow-xl border border-rose-200 flex flex-col relative" style="height: 55vh;">
             
             <div id="chat-pin-lock-overlay" class="hidden absolute inset-0 bg-white/95 backdrop-blur-md z-30 rounded-3xl flex flex-col items-center justify-center p-6 text-center space-y-3">
                 <div class="w-12 h-12 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center text-xl shadow">
@@ -4146,7 +4146,7 @@ function toggleCam() {
 </div>
 
 <!-- 2. MÀN HÌNH CUỘC GỌI TRỰC TIẾP (ACTIVE CALL) -->
-<div id="active-call-screen" class="fixed inset-0 bg-gray-950 z-[1000] hidden flex-col">
+<div id="active-call-screen" class="fixed inset-0 bg-gray-950 hidden flex-col" style="z-index: 99999;">
     <!-- Khu vực hiển thị Video -->
     <div class="relative flex-1 bg-black overflow-hidden flex items-center justify-center">
         <!-- Khung Avatar ẩn (Sẽ hiện nếu là Gọi Thoại hoặc bị tắt Cam) -->

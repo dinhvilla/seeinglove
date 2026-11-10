@@ -3606,8 +3606,12 @@ async function initiateCall(type) {
         }
 
         localStream = await navigator.mediaDevices.getUserMedia({
-            audio: true,
-            video: isCallAudioOnly ? false : true // Đưa về true cơ bản nhất cho Safari dễ nhận
+            audio: {
+                echoCancellation: true,    // Khử tiếng dội/vọng
+                noiseSuppression: true,    // Lọc tiếng ồn môi trường
+                autoGainControl: true      // Tự động cân bằng âm lượng
+            },
+            video: isCallAudioOnly ? false : true
         });
         
         setupCallScreenUI(true); // Mở giao diện gọi
@@ -3721,7 +3725,11 @@ async function acceptCall() {
         }
 
         localStream = await navigator.mediaDevices.getUserMedia({
-            audio: true,
+            audio: {
+                echoCancellation: true,    // Khử tiếng dội/vọng
+                noiseSuppression: true,    // Lọc tiếng ồn môi trường
+                autoGainControl: true      // Tự động cân bằng âm lượng
+            },
             video: isCallAudioOnly ? false : true
         });
         

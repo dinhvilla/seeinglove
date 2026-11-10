@@ -683,12 +683,51 @@
         </div>
     </section>
 
-    <!-- KHUNG TRÒ CHUYỆN THU LÙN ~2/3 MÀN HÌNH (55vh) -->
+    <!-- KHUNG TRÒ CHUYỆN THU LÙN ~2CM (75vh) & BẢO MẬT PIN LẬP TỨC KHI RỜI ĐI -->
     <section id="chat-room-section" class="hidden space-y-2">
-        <div class="bg-white/95 p-3 rounded-3xl shadow-xl border border-rose-200 flex flex-col relative" style="height: 55vh;">
+        <div class="bg-white/95 p-3 rounded-3xl shadow-xl border border-rose-200 flex flex-col relative" style="height: 75vh;">
+    <!-- 2. MÀN HÌNH CUỘC GỌI TRỰC TIẾP (ACTIVE CALL) -->
+            <div id="active-call-screen" class="absolute inset-0 bg-gray-950 hidden flex-col rounded-3xl overflow-hidden" style="z-index: 50;">
+                <!-- Khu vực hiển thị Video -->
+                <div class="relative flex-1 bg-black overflow-hidden flex items-center justify-center">
+                    <!-- Khung Avatar ẩn (Sẽ hiện nếu là Gọi Thoại hoặc bị tắt Cam) -->
+                    <div id="audio-only-avatar" class="absolute inset-0 flex flex-col items-center justify-center bg-gray-900 z-0">
+                         <div class="w-32 h-32 bg-gray-800 rounded-full flex items-center justify-center text-6xl text-gray-500 shadow-xl mb-4">
+                             <i class="fa-solid fa-user"></i>
+                         </div>
+                         <p id="active-call-partner-name" class="text-white font-black text-xl">Thành viên</p>
+                         <p id="active-call-duration" class="text-emerald-400 font-bold mt-2">00:00</p>
+                    </div>
             
+                    <!-- Video của đối tác (Màn hình lớn) -->
+                    <video id="remote-video" class="w-full h-full object-cover z-10 hidden" autoplay playsinline></video>
+                    
+                    <!-- Video của bản thân (Góc nhỏ) -->
+                    <video id="local-video" class="absolute top-4 right-4 w-28 h-40 object-cover bg-gray-800 rounded-xl border-2 border-gray-600 shadow-xl z-20 hidden" autoplay playsinline muted></video>
+            
+                    <!-- Trạng thái kết nối (Đang gọi, Đang kết nối...) -->
+                    <div id="call-status-overlay" class="absolute inset-0 flex items-center justify-center bg-black/60 z-30">
+                        <p id="call-status-text" class="text-white font-bold text-lg animate-pulse">Đang kết nối...</p>
+                    </div>
+                </div>
+            
+                <!-- Thanh điều khiển cuộc gọi dưới cùng -->
+                <div class="h-24 bg-gray-900 shrink-0 flex items-center justify-center gap-8 px-4" style="padding-bottom: env(safe-area-inset-bottom);">
+                    <button id="btn-toggle-mic" onclick="toggleMic()" class="w-12 h-12 rounded-full bg-gray-700 text-white hover:bg-gray-600 transition flex items-center justify-center text-xl">
+                        <i class="fa-solid fa-microphone"></i>
+                    </button>
+                    <button onclick="endCall()" class="w-16 h-16 rounded-full bg-rose-600 text-white shadow-[0_0_15px_rgba(225,29,72,0.4)] hover:bg-rose-700 transition flex items-center justify-center text-3xl">
+                        <i class="fa-solid fa-phone-slash"></i>
+                    </button>
+                    <button id="btn-toggle-cam" onclick="toggleCam()" class="w-12 h-12 rounded-full bg-gray-700 text-white hover:bg-gray-600 transition flex items-center justify-center text-xl">
+                        <i class="fa-solid fa-video"></i>
+                    </button>
+                </div>
+            </div>
+
             <div id="chat-pin-lock-overlay" class="hidden absolute inset-0 bg-white/95 backdrop-blur-md z-30 rounded-3xl flex flex-col items-center justify-center p-6 text-center space-y-3">
-                <div class="w-12 h-12 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center text-xl shadow">
+            
+            <div class="w-12 h-12 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center text-xl shadow">
                     <i class="fa-solid fa-lock"></i>
                 </div>
                 <h3 class="font-black text-base text-gray-900">Cuộc trò chuyện đã bị khóa bảo mật</h3>
@@ -4121,7 +4160,7 @@ function toggleCam() {
 <!-- ========================================== -->
 
 <!-- 1. POPUP ĐỔ CHUÔNG (INCOMING CALL) -->
-<div id="call-ringing-modal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-[999] hidden flex items-center justify-center p-4">
+<div id="call-ringing-modal" class="fixed inset-0 bg-black/85 backdrop-blur-sm hidden flex items-center justify-center p-4" style="z-index: 99999;">
     <div class="bg-white p-6 rounded-3xl shadow-2xl max-w-sm w-full text-center flex flex-col items-center border border-gray-100">
         <!-- Hiệu ứng Avatar rung (Ringing effect) -->
         <div class="relative w-24 h-24 mb-4 flex items-center justify-center">
@@ -4145,44 +4184,7 @@ function toggleCam() {
     </div>
 </div>
 
-<!-- 2. MÀN HÌNH CUỘC GỌI TRỰC TIẾP (ACTIVE CALL) -->
-<div id="active-call-screen" class="fixed inset-0 bg-gray-950 hidden flex-col" style="z-index: 99999;">
-    <!-- Khu vực hiển thị Video -->
-    <div class="relative flex-1 bg-black overflow-hidden flex items-center justify-center">
-        <!-- Khung Avatar ẩn (Sẽ hiện nếu là Gọi Thoại hoặc bị tắt Cam) -->
-        <div id="audio-only-avatar" class="absolute inset-0 flex flex-col items-center justify-center bg-gray-900 z-0">
-             <div class="w-32 h-32 bg-gray-800 rounded-full flex items-center justify-center text-6xl text-gray-500 shadow-xl mb-4">
-                 <i class="fa-solid fa-user"></i>
-             </div>
-             <p id="active-call-partner-name" class="text-white font-black text-xl">Thành viên</p>
-             <p id="active-call-duration" class="text-emerald-400 font-bold mt-2">00:00</p>
-        </div>
 
-        <!-- Video của đối tác (Màn hình lớn) -->
-        <video id="remote-video" class="w-full h-full object-cover z-10 hidden" autoplay playsinline></video>
-        
-        <!-- Video của bản thân (Góc nhỏ) -->
-        <video id="local-video" class="absolute top-4 right-4 w-28 h-40 object-cover bg-gray-800 rounded-xl border-2 border-gray-600 shadow-xl z-20 hidden" autoplay playsinline muted></video>
-
-        <!-- Trạng thái kết nối (Đang gọi, Đang kết nối...) -->
-        <div id="call-status-overlay" class="absolute inset-0 flex items-center justify-center bg-black/60 z-30">
-            <p id="call-status-text" class="text-white font-bold text-lg animate-pulse">Đang kết nối...</p>
-        </div>
-    </div>
-
-    <!-- Thanh điều khiển cuộc gọi dưới cùng -->
-    <div class="h-24 bg-gray-900 shrink-0 flex items-center justify-center gap-8 px-4" style="padding-bottom: env(safe-area-inset-bottom);">
-        <button id="btn-toggle-mic" onclick="toggleMic()" class="w-12 h-12 rounded-full bg-gray-700 text-white hover:bg-gray-600 transition flex items-center justify-center text-xl">
-            <i class="fa-solid fa-microphone"></i>
-        </button>
-        <button onclick="endCall()" class="w-16 h-16 rounded-full bg-rose-600 text-white shadow-[0_0_15px_rgba(225,29,72,0.4)] hover:bg-rose-700 transition flex items-center justify-center text-3xl">
-            <i class="fa-solid fa-phone-slash"></i>
-        </button>
-        <button id="btn-toggle-cam" onclick="toggleCam()" class="w-12 h-12 rounded-full bg-gray-700 text-white hover:bg-gray-600 transition flex items-center justify-center text-xl">
-            <i class="fa-solid fa-video"></i>
-        </button>
-    </div>
-</div>
 <!-- FOOTER GÃY GỌN (ĐÃ GỎI BỎ EMAIL, LIÊN HỆ QUẢN TRỊ & ỦY QUYỀN) -->
 <footer id="site-footer" class="max-w-full w-full px-2 mx-auto w-full bg-rose-900 text-white/90 py-8 px-4 relative z-10 mt-12 rounded-t-3xl shadow-xl border-t border-rose-800 text-xs" translate="no">
     <div class="space-y-6 mb-6">

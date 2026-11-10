@@ -3601,11 +3601,14 @@ async function initiateCall(type) {
     isCallAudioOnly = (type === 'audio');
     
     try {
+        // Cấu hình tối ưu cho Mobile (đặc biệt iOS Safari)
+        const constraints = {
+            audio: true,
+            video: isCallAudioOnly ? false : { facingMode: "user" } // Ưu tiên camera trước
+        };
+        
         // Xin quyền Camera/Micro
-        localStream = await navigator.mediaDevices.getUserMedia({
-            video: !isCallAudioOnly,
-            audio: true
-        });
+        localStream = await navigator.mediaDevices.getUserMedia(constraints);
         
         setupCallScreenUI(true); // Mở giao diện gọi
         
@@ -3714,10 +3717,11 @@ async function acceptCall() {
     activeCallRef = db.collection('calls').doc(incomingCallDocId);
     
     try {
-        localStream = await navigator.mediaDevices.getUserMedia({
-            video: !isCallAudioOnly,
-            audio: true
-        });
+        const constraints = {
+            audio: true,
+            video: isCallAudioOnly ? false : { facingMode: "user" }
+        };
+        localStream = await navigator.mediaDevices.getUserMedia(constraints);
         
         setupCallScreenUI(false);
         document.getElementById('call-status-overlay').classList.add('hidden');

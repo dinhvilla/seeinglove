@@ -173,7 +173,7 @@
     <section id="login-section" class="auth-box bg-white/95 p-6 rounded-3xl shadow-xl border border-rose-200 space-y-5">
         <div class="text-center">
             <h1 class="text-xl font-extrabold text-rose-600">Welcome to Seeing Love</h1>
-            <p class="text-xs text-rose-600 font-bold mt-1 italic">Nơi Chúng Ta Tìm Thấy Tình Yêu</p>
+            <p class="text-xs text-rose-600 font-bold mt-1 italic">Nơi Chúng Ta Tìm Thấy Tình Yêu Cuộc Sống</p>
         </div>
 
         <div class="bg-rose-50/70 p-4 rounded-2xl border border-rose-200 space-y-2">
@@ -181,13 +181,13 @@
                 <i class="fa-solid fa-heart-pulse text-rose-600"></i> Giới thiệu Seeing Love & Sứ mệnh
             </h3>
             <p class="text-xs text-gray-700 leading-relaxed font-medium">
-                "Seeing Love được xây dựng để mang đến một không gian kết nối chân thành, nghiêm túc và đẳng cấp giữa những người độc thân tìm kiếm một nửa hoàn hảo dựa trên sự tương thích về suy nghĩ, vị thế sự nghiệp và phong cách sống. Seeing Love cũng là một phương thức nhắn tin liên lạc riêng tư không phụ thuộc vào số điện thoại hay email cá nhân".
+                "Seeing Love có sứ mệnh mang đến một không gian kết nối chân thành, nghiêm túc giữa những người độc thân đang đi tìm một nửa hoàn hảo dựa trên sự tương thích về suy nghĩ, phong cách sống và vị thế sự nghiệp. Seeing Love cũng là một phương thức nhắn tin liên lạc riêng tư không phụ thuộc vào số điện thoại hay email cá nhân".
             </p>
         </div>
 
         <div class="text-center pt-1">
-            <h3 class="text-sm font-extrabold text-gray-900 mb-1">Đăng nhập bằng Mã Thành Viên</h3>
-            <p class="text-xs text-rose-500 font-semibold mb-3">Hệ thống đồng bộ trực tiếp từ đám mây</p>
+            <h3 class="text-sm font-extrabold text-gray-900 mb-1">Đăng nhập Mã Thành Viên</h3>
+            <p class="text-xs text-rose-500 font-semibold mb-3">Hệ thống đồng bộ trực tiếp từ đám mây Google</p>
             
             <button onclick="showCodeLoginForm()" class="inline-flex items-center justify-center gap-2 py-3 px-6 border-2 border-rose-500 rounded-2xl shadow-md bg-rose-50 text-sm font-bold text-rose-700 hover:bg-rose-100 transition">
                 <i class="fa-solid fa-id-card text-base"></i> Mở form Đăng nhập Mã thành viên
@@ -215,7 +215,7 @@
         </form>
         <div class="mt-4 text-center space-y-2.5 text-xs">
             <button onclick="openChallengeRecoveryModal()" class="text-rose-500 font-bold hover:underline block mx-auto text-sm">
-                🔑 Quên mật khẩu? (Xác thực 20 câu hỏi nhận thức)
+                🔑 Quên mật khẩu? (Xác thực nhận thức)
             </button>
             <button id="btn-create-new-account" onclick="handleCreateNewAccount()" class="text-amber-700 font-extrabold hover:underline block mx-auto bg-amber-50 px-4 py-2.5 rounded-xl border border-amber-300 w-full transition shadow-sm text-sm">
                 <i class="fa-solid fa-user-plus mr-1"></i> Tạo tài khoản mới
@@ -235,13 +235,13 @@
                     <i class="fa-solid fa-shield-halved"></i>
                 </div>
                 <h3 class="font-black text-gray-900 text-base">Hệ thống Xác thực Bảo mật Phi tập trung</h3>
-                <p class="text-xs text-rose-600 font-bold mt-0.5">Thử thách Nhận thức Ngữ cảnh (20 câu hỏi đối chiếu)</p>
+                <p class="text-xs text-rose-600 font-bold mt-0.5">Thử thách Nhận thức Ngữ cảnh</p>
             </div>
 
             <div id="challenge-step-1" class="space-y-3">
                 <label class="block font-bold text-gray-700">Nhập Mã thành viên cần khôi phục:</label>
                 <input type="text" id="recovery-target-code" oninput="this.value = this.value.toUpperCase()" placeholder="VD: P333ML21-123" class="w-full px-4 py-3 rounded-xl uppercase font-bold text-center text-base outline-none">
-                <button onclick="startChallengeQuiz()" class="w-full py-3 bg-rose-600 text-white font-bold rounded-xl shadow hover:bg-rose-700 transition">Bắt đầu bài kiểm tra nhận thức (20 câu)</button>
+                <button onclick="startChallengeQuiz()" class="w-full py-3 bg-rose-600 text-white font-bold rounded-xl shadow hover:bg-rose-700 transition">Bắt đầu bài kiểm tra nhận thức</button>
             </div>
 
             <div id="challenge-step-2" class="hidden space-y-4">
@@ -781,9 +781,9 @@
     const TIME_ON_V_REGULAR = 86400000; // 24 giờ (Mã V nạp tiền bình thường)
 
     const siteContents = {
-        mission: { title: "Sử dụng an toàn & Miễn trừ", body: "Dịch vụ cung cấp cho người đủ 18 tuổi trở lên và người sử dụng dịch vụ nhắn tin vào mục đích riêng tư phải tuân thủ pháp luật nước sở tại." },
-        privacy: { title: "Chính sách bảo mật thông tin", body: "Chúng tôi coi trọng sự riêng tư tuyệt đối. Mọi thông tin về cuộc trò chuyện, mật khẩu cá nhân đều được mã hóa đầu cuối an toàn trên đám mây. Hệ thống không thu thập và lưu trữ số điện thoại, email hoặc tài khoản mạng xã hội khác của khách hàng." },
-        guide: { title: "Hướng dẫn sử dụng", body: "Hệ thống vận hành hoàn toàn tự động không sử dụng người quản trị. Cơ chế tạo tài khoản là miễn phí. Khi quên mật khẩu và đăng nhập thất bại hãy sử dụng xác thực ngữ cảnh 20 câu hỏi để khôi phục tài khoản. Trong trường hợp thất bại, hãy tạo lại tài khoản mới hoàn toàn miễn phí. Hệ thống không sử dụng cơ chế cấp lại mật khẩu qua bất kỳ hình thức xác thực cá nhân nào." }
+        mission: { title: "Sử dụng an toàn & Miễn trừ", body: "Hệ thống cung cấp dịch vụ cho người đủ 18 tuổi trở lên. Người sử dụng dịch vụ nhắn tin trò chuyện vào mục đích riêng tư phải tuân thủ pháp luật nước sở tại." },
+        privacy: { title: "Chính sách bảo mật thông tin", body: "Chúng tôi coi trọng sự riêng tư tuyệt đối. Mọi thông tin về nội dung cuộc trò chuyện, mật khẩu tài khoản cá nhân đều được mã hóa đầu cuối an toàn trên đám mây Google. Hệ thống không thu thập và lưu trữ số điện thoại, email hoặc tài khoản mạng xã hội khác của thành viên." },
+        guide: { title: "Hướng dẫn sử dụng", body: "Hệ thống vận hành tự động không sử dụng hệ thống chăm sóc khách hàng truyền thống. Cơ chế tạo tài khoản là miễn phí. Khi quên mật khẩu và đăng nhập thất bại hãy sử dụng xác thực ngữ cảnh nhận thức để khôi phục tài khoản. Trong trường hợp thất bại, hãy tạo lại tài khoản mới hoàn toàn miễn phí. Hệ thống không sử dụng cơ chế cấp lại mật khẩu qua bất kỳ hình thức xác thực cá nhân nào." }
     };
 
     const BANK_ID = "MB"; 
@@ -817,7 +817,7 @@
     let freeMarketUsdRate = 25400; // Tỷ giá thị trường tự do
     let topupAutoCloseTimer = null;
 
-    // Biến cho 20 câu hỏi khôi phục mật khẩu nhận thức ngữ cảnh
+    // Biến câu hỏi khôi phục mật khẩu nhận thức ngữ cảnh
     let quizActiveData = null;
     let quizQuestionsList = [];
     let quizCurrentIndex = 0;
@@ -1235,7 +1235,7 @@
         } catch(e) {}
     }
 
-    // Cơ chế Khôi phục Mật khẩu bằng Ma trận 20 Câu hỏi Nhận thức Ngữ cảnh
+    // Cơ chế Khôi phục Mật khẩu bằng Ma trận Nhận thức Ngữ cảnh
     function openChallengeRecoveryModal() {
         document.getElementById('challenge-recovery-modal').classList.remove('hidden');
         document.getElementById('challenge-step-1').classList.remove('hidden');
@@ -1277,26 +1277,26 @@
         let edu = data.edu || "Đại học";
         let looks = data.looks || "15-17";
 
-        qList.push({ q: `Hồ sơ của bạn khai báo giới tính là ${gender} phải không?`, ans: true, group: 'g' });
-        qList.push({ q: `Hồ sơ của bạn khai báo giới tính KHÁC với ${gender} phải không?`, ans: false, group: 'g' });
-        qList.push({ q: `Bạn đã từng chọn trình độ học vấn là ${edu} phải không?`, ans: true, group: 'e' });
+        qList.push({ q: `Hồ sơ của người bạn muốn tìm được khai báo giới tính là ${gender} phải không?`, ans: true, group: 'g' });
+        qList.push({ q: `Hồ sơ của bạn khai báo giới tính khác với ${gender} phải không?`, ans: false, group: 'g' });
+        qList.push({ q: `Bạn chưa từng chọn trình độ học vấn là ${edu} phải không?`, ans: true, group: 'e' });
         qList.push({ q: `Bạn chưa từng học qua trình độ ${edu} phải không?`, ans: false, group: 'e' });
-        qList.push({ q: `Điểm ngoại hình cá nhân của bạn thuộc mức ${looks} phải không?`, ans: true, group: 'l' });
-        qList.push({ q: `Ngoại hình của bạn hoàn toàn khác mức ${looks} phải không?`, ans: false, group: 'l' });
-        qList.push({ q: `Hôm qua bạn vừa tranh luận về bóng đá với người lạ phải không?`, ans: false, group: 'm' });
-        qList.push({ q: `Bạn đã từng đi du lịch sao Hỏa cùng thành viên khác phải không?`, ans: false, group: 'm' });
-        qList.push({ q: `Hồ sơ của bạn có cấu hình tìm kiếm bán kính hoạt động không?`, ans: true, group: 's' });
-        qList.push({ q: `Hệ thống Seeing Love hoạt động hoàn toàn tự động qua đám mây phải không?`, ans: true, group: 's' });
-        qList.push({ q: `Bạn có sử dụng cổng thanh toán VietQR cho giao dịch nội địa VNĐ không?`, ans: true, group: 'p' });
-        qList.push({ q: `Tài khoản PingPong USD của hệ thống thuộc ngân hàng Deutsche Bank tại Hoa Kỳ phải không?`, ans: true, group: 'p' });
-        qList.push({ q: `Bạn có sử dụng mã PIN 4 chữ số để khóa phòng chat không?`, ans: true, group: 'c' });
-        qList.push({ q: `Bạn có từng chia sẻ định vị GPS trong phòng chat không?`, ans: true, group: 'c' });
+        qList.push({ q: `Điểm ngoại hình cá nhân của bạn thuộc mức thấp hơn ${looks} phải không?`, ans: true, group: 'l' });
+        qList.push({ q: `Ngoại hình của người mà bạn muốn tìm khác mức ${looks} phải không?`, ans: false, group: 'l' });
+        qList.push({ q: `Hôm qua bạn vừa tranh luận về y học và bóng đá với một người khác phải không?`, ans: false, group: 'm' });
+        qList.push({ q: `Bạn đã từng đi du lịch nhiều nơi trong đó có Đà Lạt và Seul cùng thành viên khác phải không?`, ans: false, group: 'm' });
+        qList.push({ q: `Hồ sơ của bạn có cấu hình tìm kiếm bán kính hoạt động trong phạm vi trên 10 kilometers không?`, ans: true, group: 's' });
+        qList.push({ q: `Hệ thống của chúng tôi hoạt động hoàn toàn tự động qua đám mây phải không?`, ans: true, group: 's' });
+        qList.push({ q: `Bạn sử dụng cổng thanh toán VietQR cho giao dịch nội địa VNĐ cách đây 2 ngày phải không?`, ans: true, group: 'p' });
+        qList.push({ q: `Tài khoản USD của hệ thống thuộc ngân hàng Deutsche Bank tại Hoa Kỳ không thể thanh toán toàn cầu phải không?`, ans: true, group: 'p' });
+        qList.push({ q: `Bạn chưa từng sử dụng mã PIN để khóa phòng chat không?`, ans: true, group: 'c' });
+        qList.push({ q: `Bạn đã từng chia sẻ định vị GPS trong phòng chat cách đây 48 tiếng phải không?`, ans: true, group: 'c' });
         qList.push({ q: `Bạn có muốn bảo vệ sự riêng tư tuyệt đối cho các cuộc trò chuyện không?`, ans: true, group: 's' });
-        qList.push({ q: `Bài kiểm tra này có tổng cộng 20 câu hỏi nhận thức ngữ cảnh phải không?`, ans: true, group: 's' });
-        qList.push({ q: `Bạn có chắc chắn mình chưa từng tham gia hệ thống trước đây không?`, ans: false, group: 's' });
-        qList.push({ q: `Bạn có gửi yêu cầu xác thực qua email cho quản trị viên không?`, ans: false, group: 's' });
-        qList.push({ q: `Bạn có phải là robot tự động không?`, ans: false, group: 's' });
-        qList.push({ q: `Bạn có đang sử dụng thiết bị di động để trải nghiệm ứng dụng này không?`, ans: true, group: 's' });
+        qList.push({ q: `Bài kiểm tra này có tổng cộng 18 câu hỏi nhận thức ngữ cảnh và 4 câu nhân nhượng phải không?`, ans: true, group: 's' });
+        qList.push({ q: `Bạn có chắc chắn mình chưa từng tham gia hệ thống này trước đây không?`, ans: false, group: 's' });
+        qList.push({ q: `Bạn có gửi yêu cầu xác thực qua email cho quản trị viên để yêu cầu được cấp lại mật khẩu phải không?`, ans: false, group: 's' });
+        qList.push({ q: `Bạn có thói quen truy cập hệ thống Seeing Love vào cuối giờ chiều phải không?`, ans: false, group: 's' });
+        qList.push({ q: `Bạn không sử dụng thiết bị di động để trải nghiệm ứng dụng này trong buổi sáng nay phải hông?`, ans: true, group: 's' });
 
         return qList.sort(() => Math.random() - 0.5);
     }
@@ -4180,8 +4180,8 @@ function toggleCam() {
                 </div>
                 <span class="text-lg font-black text-white tracking-wide">Seeing Love</span>
             </div>
-            <p class="text-xs text-rose-200 italic mb-1">Nơi chúng ta tìm thấy tình yêu</p>
-            <p class="text-xs text-rose-300 leading-relaxed">Ứng dụng kết nối và trò chuyện qua đám mây trực tuyến.</p>
+            <p class="text-xs text-rose-200 italic mb-1">Nơi tình yêu tìm đến bên ta</p>
+            <p class="text-xs text-rose-300 leading-relaxed">Kết nối trò chuyện trực tuyến qua đám mây Google</p>
         </div>
         <div>
             <h4 class="font-bold text-amber-300 uppercase tracking-wider mb-2 text-xs">THÔNG TIN & ĐIỀU KHOẢN</h4>

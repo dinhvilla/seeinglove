@@ -7,7 +7,7 @@
     <meta name="theme-color" content="#e11d48">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Seeing Love">
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><path fill='%23e11d48' d='M47.6 300.4L228.3 469.1c7.5 7 17.4 10.9 27.7 10.9s20.2-3.9 27.7-10.9L464.4 300.4c30.4-28.3 47.6-68 47.6-109.5v-5.8c0-69.9-50.5-129.5-119.4-141-34.7-5.8-70.6 2.5-98.7 22.9L256 94.7l-37.9-27.7c-28.1-20.4-64-28.7-98.7-22.9C50.5 55.6 0 115.2 0 185.1v5.8c0 41.5 17.2 81.2 47.6 109.5z'/></svg>">
     <link id="sl-apple-icon" rel="apple-touch-icon" href="">
@@ -59,20 +59,21 @@
 
     <style>
         /* Tối ưu hóa font chữ to, rõ ràng và khóa cứng chiều cao màn hình */
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #fdf2f8;
-            color: #374151;
-            margin: 0;
-            padding: 0;
-            /* Dùng 100dvh thay cho 100vh để iPhone tự động trừ hao thanh địa chỉ Safari, chống tràn đáy */
-            height: 100dvh; 
-            width: 100vw;
-            overflow: hidden; 
-            font-size: 16px; /* Tăng size chữ mặc định lên 16px cho dễ đọc */
-            display: flex;
-            flex-direction: column;
-        }
+        html, body {
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+          background-color: #fdf2f8;
+          color: #374151;
+          margin: 0;
+          padding: 0;
+          position: fixed;
+          inset: 0;
+          height: 100dvh; 
+          width: 100vw;
+          overflow: hidden; 
+          font-size: 16px;
+          display: flex;
+          flex-direction: column;
+      }
         
         /* Container chính tự động lấp đầy phần giữa và có thể cuộn độc lập */
         main.app-main-container {
@@ -142,35 +143,35 @@
         </div>
     </div>
 </div>
-<header class="bg-white/95 backdrop-blur-md shadow-sm sticky top-0 z-50 border-b border-rose-200">
-    <div class="max-w-5xl mx-auto px-4 py-2 flex justify-between items-center">
-        <div class="flex items-center space-x-2 cursor-pointer" onclick="goHome()">
-            <div class="bg-rose-600 text-white p-1.5 rounded-xl shadow-md flex items-center justify-center w-11 h-11 text-lg">
-                <i class="fa-solid fa-heart-pulse text-sm"></i>
+<header class="bg-white shadow-sm sticky top-0 z-50 border-b border-rose-200 shrink-0" style="padding-top: env(safe-area-inset-top);">
+    <div class="max-w-5xl mx-auto px-3 py-2 flex justify-between items-center gap-1.5">
+        <div class="flex items-center space-x-1.5 cursor-pointer shrink-0" onclick="goHome()">
+            <div class="bg-rose-600 text-white p-1.5 rounded-xl shadow-md flex items-center justify-center w-9 h-9 text-base shrink-0">
+                <i class="fa-solid fa-heart-pulse text-xs"></i>
             </div>
             <div>
-                <span class="text-2xl font-black text-rose-600 tracking-wide leading-none block">Seeing Love</span>
+                <span class="text-lg sm:text-2xl font-black text-rose-600 tracking-tight leading-none block whitespace-nowrap">Seeing Love</span>
             </div>
         </div>
-        
-        <div class="flex items-center space-x-3">
-            <button id="logout-btn" onclick="resetToLogin()" class="hidden px-2.5 py-1.5 text-xs font-bold bg-rose-50 text-rose-600 border border-rose-200 rounded-lg hover:bg-rose-100 transition items-center gap-1">
+
+        <div class="flex items-center space-x-1.5 sm:space-x-3 shrink-0">
+            <button id="logout-btn" onclick="resetToLogin()" class="hidden px-2 py-1.5 text-xs font-bold bg-rose-50 text-rose-600 border border-rose-200 rounded-lg hover:bg-rose-100 transition items-center gap-1">
                 <i class="fa-solid fa-right-from-bracket"></i>
             </button>
-            
-            <button onclick="openElitePaymentModal()" class="bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 text-white px-3.5 py-2.5 rounded-xl text-sm font-black shadow-sm hover:brightness-110 transition flex items-center gap-2 border border-amber-300">
-                <i class="fa-solid fa-crown text-amber-100 text-base"></i>
+
+            <button onclick="openElitePaymentModal()" class="bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 text-white px-2.5 py-1.5 rounded-xl text-xs font-black shadow-sm hover:brightness-110 transition flex items-center gap-1.5 border border-amber-300 shrink-0">
+                <i class="fa-solid fa-crown text-amber-100 text-xs"></i>
                 <div class="flex flex-col text-left leading-tight">
                     <span>Nâng cấp</span>
                     <span>Tinh hoa</span>
                 </div>
             </button>
 
-            <div class="flex flex-col gap-1 items-end">
-                <button id="auth-btn" onclick="handleLoginClick()" class="px-3 py-1 text-xs font-bold bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 rounded-lg shadow-sm transition text-center">Đăng nhập</button>
-                
-                <div id="user-badge-display" class="hidden items-center justify-center px-2 py-0.5 rounded-lg border text-xs bg-rose-50 border-rose-200 shadow-inner">
-                    <span id="nav-member-id" class="font-black text-xs text-rose-700 uppercase">P333ML21-123</span>
+            <div class="flex flex-col gap-1 items-end shrink-0">
+                <button id="auth-btn" onclick="handleLoginClick()" class="px-2.5 py-1 text-[11px] font-bold bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 rounded-lg shadow-sm transition text-center whitespace-nowrap">Đăng nhập</button>
+
+                <div id="user-badge-display" class="hidden items-center justify-center px-1.5 py-0.5 rounded-lg border text-[10px] bg-rose-50 border-rose-200 shadow-inner">
+                    <span id="nav-member-id" class="font-black text-[10px] text-rose-700 uppercase whitespace-nowrap">P333ML21-123</span>
                 </div>
             </div>
         </div>

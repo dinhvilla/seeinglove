@@ -4,7 +4,45 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Seeing Love - Kết Nối Toàn Cầu</title>
+    <meta name="theme-color" content="#e11d48">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Seeing Love">
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><path fill='%23e11d48' d='M47.6 300.4L228.3 469.1c7.5 7 17.4 10.9 27.7 10.9s20.2-3.9 27.7-10.9L464.4 300.4c30.4-28.3 47.6-68 47.6-109.5v-5.8c0-69.9-50.5-129.5-119.4-141-34.7-5.8-70.6 2.5-98.7 22.9L256 94.7l-37.9-27.7c-28.1-20.4-64-28.7-98.7-22.9C50.5 55.6 0 115.2 0 185.1v5.8c0 41.5 17.2 81.2 47.6 109.5z'/></svg>">
+    <link id="sl-apple-icon" rel="apple-touch-icon" href="">
+    <link id="sl-manifest" rel="manifest" href="">
+    <script>
+        (function() {
+            const c = document.createElement('canvas');
+            c.width = 512; c.height = 512;
+            const ctx = c.getContext('2d');
+            ctx.fillStyle = '#e11d48';
+            ctx.beginPath();
+            ctx.roundRect ? ctx.roundRect(0, 0, 512, 512, 110) : ctx.rect(0, 0, 512, 512);
+            ctx.fill();
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '900 240px Arial, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('❤', 256, 230);
+            ctx.fillStyle = '#fef08a';
+            ctx.font = '900 68px Arial, sans-serif';
+            ctx.fillText('Seeing Love', 256, 415);
+            const pngUrl = c.toDataURL('image/png');
+            document.getElementById('sl-apple-icon').href = pngUrl;
+            const manifest = {
+                name: "Seeing Love - Kết Nối Toàn Cầu",
+                short_name: "Seeing Love",
+                start_url: "/?source=pwa",
+                display: "standalone",
+                background_color: "#fdf2f8",
+                theme_color: "#e11d48",
+                icons: [{ src: pngUrl, sizes: "512x512", type: "image/png", purpose: "any maskable" }]
+            };
+            document.getElementById('sl-manifest').href = "data:application/manifest+json;charset=utf-8," + encodeURIComponent(JSON.stringify(manifest));
+        })();
+    </script>
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">

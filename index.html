@@ -1288,6 +1288,7 @@
 
     // =========================================================================
     // =========================================================================
+    // =========================================================================
     // HỆ THỐNG XÓA TRẮNG TIN NHẮN (KIỂU 1) & TRUYỀN TỆP/ẢNH P2P TỰ HỦY (HƯỚNG 1)
     // =========================================================================
     window._slActiveChatCol = null;
@@ -1295,9 +1296,10 @@
     window._slActiveMsgDocs = [];
     window._slActiveRoomRef = null;
     window._slActiveMsgArray = null;
-    window._slP2PRoomUnsub = null;
-    window._slProcessedP2PIds = {};
     window._slRawCollection = null;
+    window._slP2PChunkBuffer = {};
+    window._slRamFilesInMemory = [];
+    window._slDeletedPktSignatures = {};
 
     function getSLRawCollection(colName) {
         if (window._slRawCollection) return window._slRawCollection(colName);
@@ -1307,8 +1309,15 @@
 
     function getSLCurrentMemberCode() {
         if (typeof currentMemberCode !== 'undefined' && currentMemberCode) return String(currentMemberCode).trim().toUpperCase();
+        if (typeof currentUserCode !== 'undefined' && currentUserCode) return String(currentUserCode).trim().toUpperCase();
         const badge = document.getElementById('header-member-code');
         if (badge && badge.innerText && badge.innerText !== '---') return badge.innerText.trim().toUpperCase();
+        // Tự động quét huy hiệu mã thành viên ở góc trên bên phải màn hình
+        const allEls = document.querySelectorAll('span, div, button, p');
+        for (let i = 0; i < allEls.length; i++) {
+            const t = (allEls[i].innerText || '').trim();
+            if (/^[PVGKQU][0-9A-Z]{4,8}-[0-9]{3}$/i.test(t)) return t.toUpperCase();
+        }
         return "";
     }
 
@@ -1326,8 +1335,10 @@
         return null;
     }
 
-    // Tự động đọc mã phòng trực tiếp từ thanh tiêu đề cửa sổ chat đang mở
     function detectActiveSLRoomFromScreen() {
+        if (window._slActiveChatCol && window._slActiveChatRoomId) {
+            return { col: window._slActiveChatCol, roomId: window._slActiveChatRoomId };
+        }
         const chatBox = getSLChatScrollBox();
         if (!chatBox || chatBox.offsetParent === null) return null;
 
@@ -1339,58 +1350,23 @@
             if (codeMatch && codeMatch[1]) {
                 const partnerCode = codeMatch[1].trim().toUpperCase();
                 const roomId = [myCode, partnerCode].sort().join("_");
-                return { col: "chats", roomId: roomId, isDirect1v1: true };
+                return { col: "chats", roomId: roomId };
             }
-        }
-
-        if (window._slActiveChatCol && window._slActiveChatRoomId) {
-            return { col: window._slActiveChatCol, roomId: window._slActiveChatRoomId, isDirect1v1: (window._slActiveChatCol === "chats") };
         }
         return null;
     }
 
-    // 1. Gắn nút thùng rác Xóa trắng (Hard Delete) gọn bên phải từng tin nhắn của mình
-    function attachSLHardDeleteButtons() {
+    function getSLFirestoreMessageRows() {
         const chatBox = getSLChatScrollBox();
-        if (!chatBox) return;
-
-        const rows = Array.from(chatBox.children).filter(el => !el.classList.contains('sl-p2p-ram-bubble') && el.tagName === 'DIV');
-
-        rows.forEach((row, idx) => {
-            const existingBtn = row.querySelector('.sl-hard-delete-btn');
-            if (existingBtn) {
-                existingBtn.setAttribute('data-msg-idx', idx);
-                return;
-            }
-
-            const isMine = row.classList.contains('bg-rose-600') || row.classList.contains('justify-end') || row.classList.contains('items-end') || row.classList.contains('ml-auto') || !!row.querySelector('.bg-rose-600');
-            if (!isMine) return;
-
-            const targetBubble = row.classList.contains('bg-rose-600') ? row : (row.querySelector('.bg-rose-600') || row);
-            const rawText = (targetBubble.innerText || "").trim();
-
-            const delBtn = document.createElement('button');
-            delBtn.type = 'button';
-            delBtn.className = 'sl-hard-delete-btn float-right ml-2.5 text-white/75 hover:text-white text-xs transition cursor-pointer';
-            delBtn.title = 'Thu hồi / Xóa trắng vĩnh viễn tin nhắn này';
-            delBtn.setAttribute('data-msg-idx', idx);
-            delBtn.setAttribute('data-msg-text', rawText);
-            delBtn.innerHTML = '<i class="fa-solid fa-trash-can"></i>';
-            delBtn.onclick = function(e) {
-                e.stopPropagation();
-                const targetIdx = parseInt(this.getAttribute('data-msg-idx'), 10);
-                const msgTxt = this.getAttribute('data-msg-text') || "";
-                executeSLHardDeleteMessage(targetIdx, msgTxt, row);
-            };
-
-            targetBubble.insertBefore(delBtn, targetBubble.firstChild);
-        });
+        if (!chatBox) return [];
+        return Array.from(chatBox.children).filter(el => !el.classList.contains('sl-p2p-ram-bubble') && el.tagName === 'DIV');
     }
 
-    async function executeSLHardDeleteMessage(idx, msgTxt, rowElem) {
-        if (!confirm("🔥 Xóa trắng vĩnh viễn tin nhắn này khỏi đám mây (không để lại dấu vết ở cả hai phía)?")) return;
+    // Hàm xóa trắng bản ghi trên Firestore (Dùng chung cho cả nút Thùng rác và Tự hủy P2P)
+    async function coreDeleteSLMessageAtIndex(idx, rowElem, askConfirm) {
+        if (askConfirm && !confirm("🔥 Xóa trắng vĩnh viễn tin nhắn này khỏi đám mây (không để lại dấu vết ở cả hai phía)?")) return false;
         try {
-            if (rowElem) rowElem.style.opacity = '0.25';
+            if (rowElem && askConfirm) rowElem.style.opacity = '0.25';
 
             // Trường hợp 1: Tin nhắn lưu trong subcollection "messages"
             if (window._slActiveMsgDocs && window._slActiveMsgDocs.length > 0) {
@@ -1398,7 +1374,7 @@
                 if (targetDoc && targetDoc.ref) {
                     await targetDoc.ref.delete();
                     if (rowElem) rowElem.remove();
-                    return;
+                    return true;
                 }
             }
 
@@ -1407,10 +1383,10 @@
                 const updated = window._slActiveMsgArray.filter((_, i) => i !== idx);
                 await window._slActiveRoomRef.set({ messages: updated }, { merge: true });
                 if (rowElem) rowElem.remove();
-                return;
+                return true;
             }
 
-            // Trường hợp 3: Truy vấn trực tiếp theo mã phòng đang mở trên màn hình
+            // Trường hợp 3: Truy vấn trực tiếp theo mã phòng đang mở
             const activeRoom = detectActiveSLRoomFromScreen();
             if (activeRoom) {
                 const roomRef = getSLRawCollection(activeRoom.col).doc(activeRoom.roomId);
@@ -1425,7 +1401,7 @@
                     if (docToDel) {
                         await docToDel.ref.delete();
                         if (rowElem) rowElem.remove();
-                        return;
+                        return true;
                     }
                 }
                 const roomDoc = await roomRef.get();
@@ -1433,102 +1409,203 @@
                     const updated = roomDoc.data().messages.filter((_, i) => i !== idx);
                     await roomRef.set({ messages: updated }, { merge: true });
                     if (rowElem) rowElem.remove();
+                    return true;
                 }
             }
         } catch (err) {
             console.error("Hard Delete Error:", err);
-            alert("Lỗi khi xóa trắng tin nhắn!");
+            if (askConfirm) alert("Lỗi khi xóa trắng tin nhắn!");
         }
+        return false;
     }
 
-    // 2. Kênh truyền Tệp & Ảnh P2P trực tiếp (Tự động xóa trắng khỏi Firestore ngay khi nhận)
-    function setupSLP2PRoomChannel(colName, roomId) {
-        if (!colName || !roomId) return;
-        const key = colName + "/" + roomId;
-        if (window._slCurrentP2PKey === key && window._slP2PRoomUnsub) return;
-
-        window._slCurrentP2PKey = key;
-        window._slActiveChatCol = colName;
-        window._slActiveChatRoomId = roomId;
-
-        if (window._slP2PRoomUnsub) {
-            try { window._slP2PRoomUnsub(); } catch(e) {}
-            window._slP2PRoomUnsub = null;
-        }
-
-        const rawCol = getSLRawCollection(colName);
-        if (!rawCol) return;
-        const roomRef = rawCol.doc(roomId);
-
-        window._slP2PRoomUnsub = roomRef.onSnapshot(async (docSnap) => {
-            if (!docSnap.exists) return;
-            const data = docSnap.data() || {};
-            const myCode = getSLCurrentMemberCode();
-
-            const pkt = data.p2pPacket;
-            if (pkt && pkt.id && !window._slProcessedP2PIds[pkt.id]) {
-                // Nếu mình không phải là người gửi và đang mở cửa sổ phòng chat này -> Nhận ngay vào RAM!
-                const chatBox = getSLChatScrollBox();
-                const isRoomVisible = chatBox && chatBox.offsetParent !== null;
-                if (myCode && pkt.sender !== myCode && isRoomVisible) {
-                    window._slProcessedP2PIds[pkt.id] = true;
-                    receiveAndRenderSLP2PPacket(pkt, roomId);
-
-                    // Nếu là phòng chat 1-1 -> Xóa trắng ngay lập tức trên Firestore sau khi máy nhận đã bắt được!
-                    if (colName === "chats" || pkt.isDirect1v1) {
-                        try {
-                            await roomRef.set({ p2pPacket: firebase.firestore.FieldValue.delete() }, { merge: true });
-                        } catch (e) {}
-                    }
-                }
-            }
-        });
-    }
-
-    function renderSLP2PBubbleInRAM(fileObj, isSender, senderCode) {
+    // 1. Gắn nút thùng rác Xóa trắng & Tự động bắt gói tin P2P truyền qua luồng chat
+    function attachSLHardDeleteAndCatchP2P() {
         const chatBox = getSLChatScrollBox();
         if (!chatBox) return;
 
-        const row = document.createElement('div');
-        row.className = `sl-p2p-ram-bubble flex ${isSender ? 'justify-end' : 'justify-start'} my-2 items-center w-full`;
+        const rows = getSLFirestoreMessageRows();
 
-        const isImg = fileObj.mime && fileObj.mime.startsWith('image/');
-        const previewHtml = isImg
-            ? `<img src="${fileObj.dataUrl}" class="max-w-[220px] max-h-[220px] rounded-xl border border-white/40 shadow mb-1.5 object-cover cursor-pointer" onclick="window.open(this.src)">`
-            : `<div class="flex items-center gap-2 bg-black/10 p-2 rounded-xl mb-1.5"><i class="fa-solid fa-file-shield text-lg"></i><div class="text-left overflow-hidden"><p class="font-bold text-xs truncate max-w-[160px]">${fileObj.name}</p><p class="text-[10px] opacity-80">${Math.ceil((fileObj.size || 1024)/1024)} KB</p></div></div>`;
+        rows.forEach((row, idx) => {
+            const fullText = (row.innerText || row.textContent || "").trim();
 
-        row.innerHTML = `
-            <div class="${isSender ? 'bg-rose-600 text-white ml-auto' : 'bg-white text-gray-800 border-2 border-emerald-500 mr-auto'} p-3 rounded-2xl shadow-md max-w-xs text-xs">
-                <div class="flex items-center justify-between gap-2 mb-1 pb-1 border-b ${isSender ? 'border-rose-400/50 text-amber-200' : 'border-emerald-200 text-emerald-700'} font-bold text-[10px]">
-                    <span><i class="fa-solid fa-bolt"></i> P2P Trực Tiếp (Tự hủy Cloud)</span>
-                    <button type="button" onclick="this.closest('.sl-p2p-ram-bubble').remove()" class="hover:text-red-300 ml-2" title="Xóa khỏi màn hình"><i class="fa-solid fa-trash-can"></i></button>
-                </div>
-                ${!isSender ? `<p class="text-[10px] font-bold text-rose-600 mb-1">Từ: ${senderCode}</p>` : `<p class="text-[10px] opacity-90 mb-1">Đã truyền P2P trực tiếp (Tự xóa trắng trên Cloud)</p>`}
-                ${previewHtml}
-                <div class="flex items-center justify-between gap-2 mt-1">
-                    <a href="${fileObj.dataUrl}" download="${fileObj.name || 'tep-p2p'}" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg font-bold text-[11px] ${isSender ? 'bg-white text-rose-700 hover:bg-rose-50' : 'bg-emerald-600 text-white hover:bg-emerald-700'} shadow-sm">
-                        <i class="fa-solid fa-download"></i> Lưu về máy
-                    </a>
-                </div>
-            </div>
-        `;
-        chatBox.appendChild(row);
-        chatBox.scrollTop = chatBox.scrollHeight;
+            // Kiểm tra nếu dòng tin nhắn này là Gói truyền tệp P2P ngầm
+            const p2pPos = fullText.indexOf("__SL_P2P_V2__|");
+            if (p2pPos !== -1) {
+                row.style.display = 'none'; // Ẩn ngay lập tức chuỗi mã P2P khỏi màn hình
+                const rawPacket = fullText.substring(p2pPos).split(/\s/)[0];
+                const parts = rawPacket.split("|");
+                if (parts.length >= 6) {
+                    const pktId = parts[1];
+                    const pktTs = parseInt(parts[2], 10) || 0;
+                    const chunkIdx = parseInt(parts[3], 10) || 0;
+                    const totalChunks = parseInt(parts[4], 10) || 1;
+                    const chunkData = parts.slice(5).join("|");
+                    const sig = pktId + "_" + chunkIdx;
+
+                    row.setAttribute('data-p2p-sig', sig);
+
+                    const isMine = row.classList.contains('bg-rose-600') || row.classList.contains('justify-end') || row.classList.contains('items-end') || row.classList.contains('ml-auto') || !!row.querySelector('.bg-rose-600');
+
+                    // Chỉ nhận vào RAM nếu gói tin vừa được truyền trực tiếp (trong vòng 35 giây)
+                    if (!isMine && (Date.now() - pktTs <= 35000)) {
+                        if (!window._slP2PChunkBuffer[pktId]) {
+                            window._slP2PChunkBuffer[pktId] = { chunks: {}, count: 0, total: totalChunks, done: false };
+                        }
+                        const buf = window._slP2PChunkBuffer[pktId];
+                        if (!buf.chunks[chunkIdx] && !buf.done) {
+                            buf.chunks[chunkIdx] = chunkData;
+                            buf.count++;
+                            if (buf.count >= buf.total) {
+                                buf.done = true;
+                                let joinedB64 = "";
+                                for (let c = 0; c < buf.total; c++) joinedB64 += (buf.chunks[c] || "");
+                                try {
+                                    const jsonStr = decodeURIComponent(escape(atob(joinedB64)));
+                                    const fileObj = JSON.parse(jsonStr);
+                                    addSLP2PFileToRAM(fileObj, false);
+                                } catch (e) {
+                                    console.error("P2P Assemble Error:", e);
+                                }
+                            }
+                        }
+                    }
+
+                    // Lên lịch tự động xóa trắng gói P2P khỏi Firestore (Người nhận xóa sau 1.5s, Người gửi xóa chốt chặn sau 8s)
+                    if (!window._slDeletedPktSignatures[sig]) {
+                        window._slDeletedPktSignatures[sig] = true;
+                        const delayMs = isMine ? 8000 : 1500;
+                        setTimeout(async () => {
+                            const currentRows = getSLFirestoreMessageRows();
+                            const targetIdx = currentRows.findIndex(r => r.getAttribute('data-p2p-sig') === sig || (r.innerText || "").includes(rawPacket.substring(0, 28)));
+                            if (targetIdx !== -1) {
+                                await coreDeleteSLMessageAtIndex(targetIdx, currentRows[targetIdx], false);
+                            }
+                        }, delayMs);
+                    }
+                }
+                return;
+            }
+
+            // Gắn nút thùng rác cho tin nhắn chữ thông thường của mình
+            const existingBtn = row.querySelector('.sl-hard-delete-btn');
+            if (existingBtn) {
+                existingBtn.setAttribute('data-msg-idx', idx);
+                return;
+            }
+
+            const isMine = row.classList.contains('bg-rose-600') || row.classList.contains('justify-end') || row.classList.contains('items-end') || row.classList.contains('ml-auto') || !!row.querySelector('.bg-rose-600');
+            if (!isMine) return;
+
+            const targetBubble = row.classList.contains('bg-rose-600') ? row : (row.querySelector('.bg-rose-600') || row);
+
+            const delBtn = document.createElement('button');
+            delBtn.type = 'button';
+            delBtn.className = 'sl-hard-delete-btn float-right ml-2.5 text-white/75 hover:text-white text-xs transition cursor-pointer';
+            delBtn.title = 'Thu hồi / Xóa trắng vĩnh viễn tin nhắn này';
+            delBtn.setAttribute('data-msg-idx', idx);
+            delBtn.innerHTML = '<i class="fa-solid fa-trash-can"></i>';
+            delBtn.onclick = function(e) {
+                e.stopPropagation();
+                const currentRows = getSLFirestoreMessageRows();
+                const liveIdx = currentRows.indexOf(row);
+                const targetIdx = liveIdx !== -1 ? liveIdx : parseInt(this.getAttribute('data-msg-idx'), 10);
+                coreDeleteSLMessageAtIndex(targetIdx, row, true);
+            };
+
+            targetBubble.insertBefore(delBtn, targetBubble.firstChild);
+        });
+
+        // Giữ các bong bóng tệp P2P trong RAM hiển thị ổn định trên màn hình
+        syncSLRamFileBubblesToScreen();
     }
 
-    function receiveAndRenderSLP2PPacket(pkt, roomId) {
+    // 2. Quản lý hiển thị và tải về Tệp/Ảnh P2P trên RAM (Không lưu trữ Cloud)
+    function addSLP2PFileToRAM(fileObj, isSender) {
+        if (!fileObj || !fileObj.id) return;
+        if (window._slRamFilesInMemory.some(f => f.id === fileObj.id)) return;
+        window._slRamFilesInMemory.push({
+            id: fileObj.id,
+            name: fileObj.name || "tep-dinh-kem",
+            mime: fileObj.mime || "application/octet-stream",
+            size: fileObj.size || 1024,
+            dataUrl: fileObj.dataUrl,
+            isSender: isSender
+        });
+        syncSLRamFileBubblesToScreen();
+    }
+
+    window.downloadSLP2PRamFile = function(fileId) {
+        const item = window._slRamFilesInMemory.find(f => f.id === fileId);
+        if (!item || !item.dataUrl) return;
         try {
-            const secretKey = roomId + "_" + pkt.id + "_SL_P2P_DIRECT";
-            const bytes = CryptoJS.AES.decrypt(pkt.cipher, secretKey);
-            const jsonStr = bytes.toString(CryptoJS.enc.Utf8);
-            if (!jsonStr) return;
-            const fileObj = JSON.parse(jsonStr);
-            renderSLP2PBubbleInRAM(fileObj, false, pkt.sender);
+            const arr = item.dataUrl.split(',');
+            const mimeMatch = arr[0].match(/:(.*?);/);
+            const mime = mimeMatch ? mimeMatch[1] : item.mime;
+            const bstr = atob(arr[1]);
+            let n = bstr.length;
+            const u8arr = new Uint8Array(n);
+            while (n--) u8arr[n] = bstr.charCodeAt(n);
+            const blob = new Blob([u8arr], { type: mime });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = item.name || 'tep-p2p';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(url), 5000);
         } catch (e) {
-            console.error("P2P Decrypt Error:", e);
+            const a = document.createElement('a');
+            a.href = item.dataUrl;
+            a.download = item.name || 'tep-p2p';
+            a.click();
         }
+    };
+
+    window.removeSLP2PRamFile = function(fileId) {
+        window._slRamFilesInMemory = window._slRamFilesInMemory.filter(f => f.id !== fileId);
+        const el = document.getElementById('sl-ram-bubble-' + fileId);
+        if (el) el.remove();
+    };
+
+    function syncSLRamFileBubblesToScreen() {
+        const chatBox = getSLChatScrollBox();
+        if (!chatBox) return;
+
+        window._slRamFilesInMemory.forEach(item => {
+            if (document.getElementById('sl-ram-bubble-' + item.id)) return;
+
+            const row = document.createElement('div');
+            row.id = 'sl-ram-bubble-' + item.id;
+            row.className = `sl-p2p-ram-bubble flex ${item.isSender ? 'justify-end' : 'justify-start'} my-2 items-center w-full`;
+
+            const isImg = item.mime && item.mime.startsWith('image/');
+            const previewHtml = isImg
+                ? `<img src="${item.dataUrl}" class="max-w-[220px] max-h-[220px] rounded-xl border border-white/40 shadow mb-1.5 object-cover cursor-pointer" onclick="window.downloadSLP2PRamFile('${item.id}')">`
+                : `<div class="flex items-center gap-2 bg-black/10 p-2 rounded-xl mb-1.5"><i class="fa-solid fa-file-shield text-lg"></i><div class="text-left overflow-hidden"><p class="font-bold text-xs truncate max-w-[160px]">${item.name}</p><p class="text-[10px] opacity-80">${Math.ceil((item.size || 1024)/1024)} KB</p></div></div>`;
+
+            row.innerHTML = `
+                <div class="${item.isSender ? 'bg-rose-600 text-white ml-auto' : 'bg-white text-gray-800 border-2 border-emerald-500 mr-auto'} p-3 rounded-2xl shadow-md max-w-xs text-xs">
+                    <div class="flex items-center justify-between gap-2 mb-1 pb-1 border-b ${item.isSender ? 'border-rose-400/50 text-amber-200' : 'border-emerald-200 text-emerald-700'} font-bold text-[10px]">
+                        <span><i class="fa-solid fa-bolt"></i> P2P Trực Tiếp (Tự hủy Cloud)</span>
+                        <button type="button" onclick="window.removeSLP2PRamFile('${item.id}')" class="hover:text-red-300 ml-2" title="Xóa khỏi màn hình"><i class="fa-solid fa-trash-can"></i></button>
+                    </div>
+                    <p class="text-[10px] opacity-90 mb-1">${item.isSender ? 'Đã truyền P2P (Tự xóa trắng trên Cloud)' : 'Nhận trực tiếp P2P (Đã xóa khỏi Cloud)'}</p>
+                    ${previewHtml}
+                    <div class="flex items-center justify-between gap-2 mt-1">
+                        <button type="button" onclick="window.downloadSLP2PRamFile('${item.id}')" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg font-bold text-[11px] ${item.isSender ? 'bg-white text-rose-700 hover:bg-rose-50' : 'bg-emerald-600 text-white hover:bg-emerald-700'} shadow-sm cursor-pointer">
+                            <i class="fa-solid fa-download"></i> Lưu về máy
+                        </button>
+                    </div>
+                </div>
+            `;
+            chatBox.appendChild(row);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        });
     }
 
+    // 3. Nén ảnh và truyền gói P2P qua chính luồng gửi tin nhắn của phòng chat
     function compressSLImageFile(file) {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -1536,14 +1613,14 @@
                 const img = new Image();
                 img.onload = function() {
                     const canvas = document.createElement('canvas');
-                    const maxDim = 960;
+                    const maxDim = 720;
                     let w = img.width, h = img.height;
                     if (w > h && w > maxDim) { h = Math.round(h * maxDim / w); w = maxDim; }
                     else if (h > maxDim) { w = Math.round(w * maxDim / h); h = maxDim; }
                     canvas.width = w; canvas.height = h;
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, w, h);
-                    const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.75);
+                    const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.68);
                     resolve({
                         name: file.name.replace(/\.[^.]+$/, '') + '.jpg',
                         mime: 'image/jpeg',
@@ -1586,57 +1663,59 @@
             return;
         }
 
-        const activeRoom = detectActiveSLRoomFromScreen();
-        if (!activeRoom) {
+        const inp = document.querySelector('input[placeholder*="Nhập tin nhắn"]');
+        const chatBox = getSLChatScrollBox();
+        if (!inp || !chatBox || chatBox.offsetParent === null) {
             alert("⚠️ Vui lòng mở một phòng trò chuyện trước khi gửi tệp P2P!");
             return;
         }
 
-        setupSLP2PRoomChannel(activeRoom.col, activeRoom.roomId);
-
-        const myCode = getSLCurrentMemberCode();
-        const roomRef = getSLRawCollection(activeRoom.col).doc(activeRoom.roomId);
-
         try {
             let filePayload = null;
-            if (file.type.startsWith('image/')) {
+            if (file.type && file.type.startsWith('image/')) {
                 filePayload = await compressSLImageFile(file);
             } else {
-                if (file.size > 600 * 1024) {
-                    alert("⚠️ Với tệp tài liệu (PDF, Word, Excel...), vui lòng chọn tệp dưới 600KB để truyền P2P tức thì!");
+                if (file.size > 1200 * 1024) {
+                    alert("⚠️ Vui lòng chọn tệp tài liệu dưới 1.2MB để truyền P2P tức thì!");
                     return;
                 }
                 filePayload = await readSLRawFile(file);
             }
 
-            const pktId = "P2P_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7);
-            const secretKey = activeRoom.roomId + "_" + pktId + "_SL_P2P_DIRECT";
-            const cipher = CryptoJS.AES.encrypt(JSON.stringify(filePayload), secretKey).toString();
+            const pktId = "P2P" + Date.now().toString(36) + Math.random().toString(36).substring(2, 5);
+            filePayload.id = pktId;
 
-            window._slProcessedP2PIds[pktId] = true;
+            // Hiển thị ngay tệp vừa gửi lên màn hình RAM của người gửi
+            addSLP2PFileToRAM(filePayload, true);
 
-            await roomRef.set({
-                p2pPacket: {
-                    id: pktId,
-                    sender: myCode,
-                    cipher: cipher,
-                    isDirect1v1: activeRoom.isDirect1v1,
-                    timestamp: Date.now()
+            const jsonStr = JSON.stringify(filePayload);
+            const b64Full = btoa(unescape(encodeURIComponent(jsonStr)));
+
+            // Chia nhỏ gói tin (mỗi mảnh tối đa 140KB) để vượt qua mọi giới hạn dung lượng của Firestore
+            const chunkSize = 140000;
+            const totalChunks = Math.ceil(b64Full.length / chunkSize);
+            const ts = Date.now();
+            const savedInputText = inp.value;
+
+            for (let i = 0; i < totalChunks; i++) {
+                const part = b64Full.slice(i * chunkSize, (i + 1) * chunkSize);
+                const packetText = `__SL_P2P_V2__|${pktId}|${ts}|${i}|${totalChunks}|${part}`;
+                inp.value = packetText;
+                if (typeof sendTextMessage === 'function') {
+                    await sendTextMessage();
+                } else {
+                    const sendBtn = inp.parentElement.querySelector('button:last-child');
+                    if (sendBtn) sendBtn.click();
+                    await new Promise(r => setTimeout(r, 350));
                 }
-            }, { merge: true });
+            }
 
-            renderSLP2PBubbleInRAM(filePayload, true, myCode);
-
-            // Tự động xóa trắng gói tin P2P khỏi Firestore sau 12 giây (ai không mở phòng lúc gửi sẽ không còn dữ liệu trên Cloud)
-            setTimeout(async () => {
-                try {
-                    await roomRef.set({ p2pPacket: firebase.firestore.FieldValue.delete() }, { merge: true });
-                } catch (e) {}
-            }, 12000);
+            inp.value = savedInputText;
+            setTimeout(attachSLHardDeleteAndCatchP2P, 100);
 
         } catch (err) {
             console.error("P2P Send Error:", err);
-            alert("Lỗi khi truyền tệp P2P!");
+            alert("Lỗi khi truyền tệp P2P: " + (err.message || err));
         }
     }
 
@@ -1657,7 +1736,7 @@
         btn.type = 'button';
         btn.id = 'sl-p2p-attach-btn';
         btn.onclick = () => document.getElementById('sl-p2p-file-input').click();
-        btn.className = 'w-10 h-10 rounded-2xl bg-rose-100 text-rose-600 hover:bg-rose-200 flex items-center justify-center shadow-sm transition shrink-0';
+        btn.className = 'w-10 h-10 rounded-2xl bg-rose-100 text-rose-600 hover:bg-rose-200 flex items-center justify-center shadow-sm transition shrink-0 cursor-pointer';
         btn.title = 'Truyền Tệp / Ảnh P2P trực tiếp (Tự hủy ngay khi truyền xong)';
         btn.innerHTML = '<i class="fa-solid fa-paperclip"></i>';
 
@@ -1675,17 +1754,20 @@
                 const origDoc = colRef.doc.bind(colRef);
                 colRef.doc = function(docId) {
                     const docRef = origDoc(docId);
+                    if (docId) {
+                        window._slActiveChatCol = colName;
+                        window._slActiveChatRoomId = docId;
+                    }
 
                     const origDocSnap = docRef.onSnapshot.bind(docRef);
                     docRef.onSnapshot = function(observerOrNext, onError) {
-                        if (docId) setupSLP2PRoomChannel(colName, docId);
                         const wrappedNext = function(snap) {
                             if (snap && snap.exists) {
                                 const d = snap.data() || {};
                                 if (Array.isArray(d.messages)) {
                                     window._slActiveRoomRef = docRef;
                                     window._slActiveMsgArray = d.messages;
-                                    setTimeout(attachSLHardDeleteButtons, 80);
+                                    setTimeout(attachSLHardDeleteAndCatchP2P, 50);
                                 }
                             }
                             if (typeof observerOrNext === 'function') observerOrNext(snap);
@@ -1701,11 +1783,10 @@
                             const wrapQuerySnap = (qObj) => {
                                 const origQSnap = qObj.onSnapshot.bind(qObj);
                                 qObj.onSnapshot = function(obsOrNext, onErr) {
-                                    if (docId) setupSLP2PRoomChannel(colName, docId);
                                     const wrappedQNext = function(qSnap) {
                                         if (qSnap && qSnap.docs) {
                                             window._slActiveMsgDocs = qSnap.docs;
-                                            setTimeout(attachSLHardDeleteButtons, 80);
+                                            setTimeout(attachSLHardDeleteAndCatchP2P, 50);
                                         }
                                         if (typeof obsOrNext === 'function') obsOrNext(qSnap);
                                         else if (obsOrNext && typeof obsOrNext.next === 'function') obsOrNext.next(qSnap);
@@ -1731,16 +1812,11 @@
         };
     }
 
-    // Tự động đồng bộ kênh P2P và nút xóa mỗi khi mở phòng chat
     setInterval(() => {
         injectSLP2PAttachmentButton();
         hookSLFirestoreForChatAndP2P();
-        attachSLHardDeleteButtons();
-        const activeRoom = detectActiveSLRoomFromScreen();
-        if (activeRoom) {
-            setupSLP2PRoomChannel(activeRoom.col, activeRoom.roomId);
-        }
-    }, 1200);
+        attachSLHardDeleteAndCatchP2P();
+    }, 600);
 
     let quizUserAnswers = {};
     let recoveryTargetMemberCode = "";

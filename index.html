@@ -1857,6 +1857,60 @@
         attachSLHardDeleteAndCatchP2P();
     }, 600);
 
+    // =========================================================================
+    // TỰ ĐỘNG KHỚP CHIỀU CAO PHÒNG CHAT VỪA KHÍT GIỮA HEADER VÀ BOTTOM-NAV
+    // (Không bị che ô nhập chữ khi mở từ Icon App & Không bị lơ lửng trên Safari)
+    // =========================================================================
+    function autoFitChatRoomHeight() {
+        const isStandaloneApp = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
+        const headerEl = document.querySelector('header');
+        const bottomNavEl = document.getElementById('bottom-nav');
+
+        // Nếu đang mở từ Icon màn hình chính (App), đảm bảo Header hạ xuống khỏi vùng mờ đồng hồ iPhone
+        if (isStandaloneApp && headerEl) {
+            headerEl.style.paddingTop = 'max(env(safe-area-inset-top), 44px)';
+        }
+        if (isStandaloneApp && bottomNavEl) {
+            bottomNavEl.style.paddingBottom = 'max(env(safe-area-inset-bottom), 22px)';
+        }
+
+        const chatSection = document.getElementById('chat-room-section');
+        const mainEl = document.querySelector('main.app-main-container');
+        if (!chatSection || !mainEl) return;
+
+        // Nếu không ở trong phòng chat -> Trả lại khoảng đệm mặc định cho các trang Tìm kiếm / Hồ sơ
+        if (chatSection.classList.contains('hidden')) {
+            mainEl.style.paddingTop = '';
+            mainEl.style.paddingBottom = '';
+            return;
+        }
+
+        // Không co giãn lại khung khi người dùng đang bấm gõ bàn phím ảo
+        if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) {
+            return;
+        }
+
+        const chatCard = chatSection.querySelector('div');
+        if (!chatCard || !headerEl || !bottomNavEl) return;
+
+        // Thu gọn khoảng đệm thừa của thẻ main khi đang mở phòng chat
+        mainEl.style.paddingTop = '8px';
+        mainEl.style.paddingBottom = '8px';
+
+        const headerBottom = headerEl.getBoundingClientRect().bottom;
+        const navTop = bottomNavEl.getBoundingClientRect().top;
+
+        // Tính chiều cao chính xác từ đáy Header đến đỉnh thanh điều hướng dưới (chừa đúng 16px khoảng thở)
+        if (navTop > headerBottom + 200) {
+            const exactHeight = Math.floor(navTop - headerBottom - 16);
+            chatCard.style.height = exactHeight + 'px';
+        }
+    }
+
+    window.addEventListener('resize', autoFitChatRoomHeight);
+    window.addEventListener('orientationchange', () => setTimeout(autoFitChatRoomHeight, 200));
+    setInterval(autoFitChatRoomHeight, 300);
+
     let quizUserAnswers = {};
     let recoveryTargetMemberCode = "";
 
